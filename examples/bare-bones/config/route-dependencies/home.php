@@ -5,7 +5,7 @@
 $services=array(
 	'system.requestHandler'=>array(
 		'\\ZedBoot\\App\\RequestHandlers\\Home',
-		array('system.DependencyLoader','system.errorLogger'),
+		array('system.dependencyLoader','system.errorLogger'),
 		true
 	)
 );
