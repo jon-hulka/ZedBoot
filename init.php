@@ -69,9 +69,10 @@ function zbInit()
 		$configLoaderParameters['classLoader']=$loader;
 		$configLoaderParameters['dependencyLoader']=$dependencyLoader;
 		$configLoaderParameters['dependencyConfigLoader']=$configLoader;
-
+/*
 		if(!($ok=$dependencyLoader->addParameters(array('system.basePath'=>$basePath,'system.classLoader'=>$loader,'system.dependencyConfigLoader'=>$configLoader))))
 			error_log(__FILE__.': could not add system parameters (first set): '.$dependencyLoader->getError());
+*/
 	}
 
 	if($ok && !($ok=$configLoader->loadConfig($dependenciesConfigPath,$configLoaderParameters)))

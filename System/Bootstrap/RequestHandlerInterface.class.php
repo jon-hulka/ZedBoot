@@ -22,10 +22,6 @@ namespace ZedBoot\System\Bootstrap;
 interface RequestHandlerInterface extends \ZedBoot\System\Error\ErrorReporterInterface
 {
 	/**
-	 * @return void
-	 */
-	public function setDependencyLoader(\ZedBoot\System\DI\DependencyLoaderInterface $dependencyLoader);
-	/**
 	 * Performs requested actions
 	 * Typically, the controller will be invoked here.
 	 * Caller (init script) buffers and discards output.

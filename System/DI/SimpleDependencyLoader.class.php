@@ -118,7 +118,7 @@ class SimpleDependencyLoader implements \ZedBoot\System\DI\DependencyLoaderInter
 					break;
 			}
 		}
-		return $result;
+		return $ok;
 	}
 
 	/**
