@@ -16,6 +16,7 @@
 //To do: consider replacing nested dependency errors with dependency chain prefix
 /*
 To test:
+* getFactoryService
 * circular dependencies
 *  - service -> service
 *  - service -> factory -> service
@@ -70,16 +71,8 @@ class SimpleDependencyLoader implements \ZedBoot\System\DI\DependencyLoaderInter
 	{
 		$ok=false;
 		$v=null;
-		if(array_key_exists($id,$this->singletons))
-		{
-			$ok=true;
-			$result=$this->singletons[$id];
-		}
-		else
-		{
-			$ok=$this->loadDependency($id,array(),$v);
-			if($ok) $result=$v;
-		}
+		$ok=$this->loadDependency($id,array(),$v);
+		if($ok) $result=$v;
 		if($ok && !empty($classType))
 		{
 			if(!is_object($result))
@@ -99,23 +92,30 @@ class SimpleDependencyLoader implements \ZedBoot\System\DI\DependencyLoaderInter
 	{
 		$ok=true;
 		$service=null;
-//		$dependencyChain[]=$id;
-		if($ok && !$ok=(array_key_exists($id,$this->definitions))) $this->error=get_class($this).'::'.__FUNCTION__.': Attempt to get undefined dependency: '.json_encode($id).'.';
-		if($ok)
+		if(array_key_exists($id,$this->singletons))
 		{
-			switch($this->definitions[$id]['type'])
+			//Dependency has already been loaded
+			$result=$this->singletons[$id];
+		}
+		else
+		{
+			if($ok && !$ok=(array_key_exists($id,$this->definitions))) $this->error=get_class($this).'::'.__FUNCTION__.': Attempt to get undefined dependency: '.json_encode($id).'.';
+			if($ok)
 			{
-				case 'parameter':
-					$result=$this->definitions[$id]['value'];
-					break;
-				case 'service':
-					$ok=false!==($service=$this->loadService($id,$dependencyChain));
-					if($ok) $result=$service;
-					break;
-				case 'factory service':
-					$ok=false!==($service=$this->loadFactoryService($id,$dependencyChain));
-					if($ok) $result=$service;
-					break;
+				switch($this->definitions[$id]['type'])
+				{
+					case 'parameter':
+						$result=$this->definitions[$id]['value'];
+						break;
+					case 'service':
+						$ok=false!==($service=$this->loadService($id,$dependencyChain));
+						if($ok) $result=$service;
+						break;
+					case 'factory service':
+						$ok=false!==($service=$this->loadFactoryService($id,$dependencyChain));
+						if($ok) $result=$service;
+						break;
+				}
 			}
 		}
 		return $ok;
