@@ -15,12 +15,12 @@
  * B Dependencies
  *   At a minimum, these dependencies are available when the request handler is invoked:
  *  1 system.classLoader: \ZedBoot\System\Bootstrap\Autoloader
- *  2 system.urlRouter: \ZedBoot\System\Bootstrap\URLRouter configured by the common dependencies config file (typically <base path>/config/common-dependencies.php)
+ *  2 system.urlRouter: \ZedBoot\System\Bootstrap\URLRouter configured by the common dependencies config file (typically <base path>/ZedBoot/App/common-dependencies.php)
  *  3 system.requestHandler: \ZedBoot\System\Bootstrap\RequestHandlerInterface top level request handler configured by the dependency config file retrieved from route data
  * C Dependencies Configuration
  *   In order for a successful page load, these must be set up:
  *  1 common dependencies script
- *    a <base path>/config/common-dependencies.php
+ *    a <base path>/ZedBoot/App/common-dependencies.php
  *    b the following parameters are available to the common dependencies config script:
  *      i   $basePath String path of directory containing ZedBoot and config directories
  *      ii  $classLoader \ZedBoot\System\Bootstrap\AutoLoader (ZedBoot namespace already configured)
@@ -48,7 +48,7 @@ function zbInit()
 	$urlParts=null;
 	$urlParameters=null;
 	$basePath=dirname(dirname(__FILE__));
-	$dependenciesConfigPath=$basePath.'/config/common-dependencies.php';
+	$dependenciesConfigPath=$basePath.'/ZedBoot/App/common-dependencies.php';
 	$router=null;
 	$routeData=null;
 	$requestHandler=null;
