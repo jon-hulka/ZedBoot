@@ -1,3 +1,0 @@
-move config directory to the parent of ZedBoot
-move App directory into ZedBoot
-run ZedBoot/init.php

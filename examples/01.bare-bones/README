@@ -1,0 +1,2 @@
+move App directory into ZedBoot
+rewrite to a script that invokes ZedBoot/init.php

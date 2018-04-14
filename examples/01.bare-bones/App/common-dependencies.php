@@ -5,8 +5,8 @@ $parameters=array(
 	//id=>value
 	'system.dependencyLoader'=>$dependencyLoader,
 	'system.routes'=>array(
-		''=>array('dependencyConfig'=>$basePath.'/config/route-dependencies/home.php'), //home page configuration file
-		'*'=>array('dependencyConfig'=>$basePath.'/config/route-dependencies/notFound.php'), //404 page configuration file
+		''=>array('dependencyConfig'=>$basePath.'/ZedBoot/App/home.php'), //home page configuration file
+		'*'=>array('dependencyConfig'=>$basePath.'/ZedBoot/App/notFound.php'), //404 page configuration file
 		//Additional routes will override the 404 route, since they are more specific
 		//Typically if you don't want to allow url parameters, you should set up two routes:
 		//'foo'=>array(...),
