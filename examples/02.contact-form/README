@@ -1,0 +1,7 @@
+Move App directory into ZedBoot
+make sure the url /js/jquery.min.js points to jquery library
+rewrite to a script that invokes ZedBoot/init.php
+
+In order for this to function, \ZedBoot\App\Pages\ContactForm\MailerModelTest must be replaced with a working model.
+The test model just sends a random response.
+Things could be cleaned up a bit, but the mailer handler demonstrates how an MVC implementation can be set up.
