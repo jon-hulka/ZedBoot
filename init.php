@@ -69,10 +69,6 @@ function zbInit()
 		$configLoaderParameters['classLoader']=$loader;
 		$configLoaderParameters['dependencyLoader']=$dependencyLoader;
 		$configLoaderParameters['dependencyConfigLoader']=$configLoader;
-/*
-		if(!($ok=$dependencyLoader->addParameters(array('system.basePath'=>$basePath,'system.classLoader'=>$loader,'system.dependencyConfigLoader'=>$configLoader))))
-			error_log(__FILE__.': could not add system parameters (first set): '.$dependencyLoader->getError());
-*/
 	}
 
 	if($ok && !($ok=$configLoader->loadConfig($dependenciesConfigPath,$configLoaderParameters)))
@@ -106,14 +102,10 @@ function zbInit()
 		$configLoaderParameters['baseURL']=$baseURL;
 		$configLoaderParameters['urlParts']=$urlParts;
 		$configLoaderParameters['urlParameters']=$urlParameters;
-		if(!($ok=$dependencyLoader->addParameters(array('system.routeData'=>$routeData, 'system.baseURL'=>$baseURL,'system.urlParts'=>$urlParts,'system.urlParameters'=>$urlParameters))))
-			error_log(__FILE__.': could not add system parameters (second set): '.$dependencyLoader->getError());
+		if(!($ok=$configLoader->loadConfig($routeData['dependencyConfig'],$configLoaderParameters)))
+			error_log(__FILE__.': could not load route dependency configuration: '.$configLoader->getError());
 	}
 
-	//dependencyConfig should be one of the data items
-	if($ok && !($ok=$configLoader->loadConfig($routeData['dependencyConfig'],$configLoaderParameters)))
-		error_log(__FILE__.': could not load route dependency configuration: '.$configLoader->getError());
-	
 	//Get the request handler
 	if($ok && !($ok=$dependencyLoader->getDependency('system.requestHandler',$requestHandler,'\\ZedBoot\\System\\Bootstrap\\RequestHandlerInterface')))
 		error_log(__FILE__.': could not load request handler: '.$dependencyLoader->getError());

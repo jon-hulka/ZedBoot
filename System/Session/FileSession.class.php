@@ -1,6 +1,6 @@
 <?php
 /**
- * Interface FileSession | ZedBoot/System/Session/FileSession.class.php
+ * Class FileSession | ZedBoot/System/Session/FileSession.class.php
  * @license     GNU General Public License, version 3
  * @package     System
  * @subpackage  Session
