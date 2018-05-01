@@ -1,6 +1,6 @@
 <?php
 /**
- * Interface AccountManagementInterface | ZedBoot/System/Bootstrap/AccountManagementInterface.class.php
+ * Interface AccountManagerInterface | ZedBoot/System/Auth/AccountManagerInterface.class.php
  * @license     GNU General Public License, version 3
  * @package     System
  * @subpackage  Auth
@@ -10,10 +10,10 @@
 
 /**
  * User creation and management
- * AccountManagementInterface defines a model for managing user accounts
+ * AccountManagerInterface defines a model for managing user accounts
  */
 namespace ZedBoot\System\Auth;
-interface AccountManagementInterface extends \ZedBoot\System\Error\ErrorReporterInterface
+interface AccountManagerInterface extends \ZedBoot\System\Error\ErrorReporterInterface
 {
 	/**
 	 * @param $name String unique user name
@@ -30,8 +30,8 @@ interface AccountManagementInterface extends \ZedBoot\System\Error\ErrorReporter
 	/**
 	 * To be used after setNewPassword
 	 */
-	public function changePassword();
+	public function changePassword($id);
 	public function setInfo($id,Array $info);
-	public function addRoles($id,Array $roles);
+	public function grantRoles($id,Array $roles);
 	public function revokeRoles($id,Array $roles);
 }

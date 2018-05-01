@@ -1,6 +1,6 @@
 <?php
 /**
- * Interface LoggedUserInterface | ZedBoot/System/Bootstrap/LoggedUserInterface.class.php
+ * Interface LoggedUserInterface | ZedBoot/System/Auth/LoggedUserInterface.class.php
  * @license     GNU General Public License, version 3
  * @package     System
  * @subpackage  Auth

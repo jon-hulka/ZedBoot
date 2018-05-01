@@ -1,6 +1,6 @@
 <?php
 /**
- * Interface AccountInfoInterface | ZedBoot/System/Bootstrap/AccountInfoInterface.class.php
+ * Interface AccountInfoInterface | ZedBoot/System/Auth/AccountInfoInterface.class.php
  * @license     GNU General Public License, version 3
  * @package     System
  * @subpackage  Auth
@@ -20,7 +20,7 @@ interface AccountInfoInterface extends \ZedBoot\System\Error\ErrorReporterInterf
 	public function setSearchNames(array $names);
 	public function clearSearchParameters();
 	/**
-	 * @return Array ('roles'=>array(...),'name'=>...,'id'=>...,info=>array(...))
+	 * @return Array ('id'=>...,'name'=>...,'roles'=>array(...),info=>array(...))
 	 */
 	public function getUsers();
 }

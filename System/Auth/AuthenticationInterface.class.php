@@ -1,6 +1,6 @@
 <?php
 /**
- * Interface AuthenticationInterface | ZedBoot/System/Bootstrap/AuthenticationInterface.class.php
+ * Interface AuthenticationInterface | ZedBoot/System/Auth/AuthenticationInterface.class.php
  * @license     GNU General Public License, version 3
  * @package     System
  * @subpackage  Auth
