@@ -16,6 +16,8 @@
 namespace ZedBoot\System\DataStore;
 interface DataStoreInterface extends \ZedBoot\System\Error\ErrorReporterInterface
 {
+	function lockAndRead(&$data);
+	function writeAndUnlock($data);
 	function lock();
 	/**
 	 * Should return error if data store has not been locked

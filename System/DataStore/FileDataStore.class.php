@@ -26,6 +26,8 @@ class FileDataStore implements \ZedBoot\System\DataStore\DataStoreInterface
 		$this->path=$path;
 		$this->errorLogger=$errorLogger;
 	}
+	public function lockAndRead(&$data){ return $this->lock() && $this->read($data); }
+	public function writeAndUnlock($data){ return $this->write($data) && $this->unlock); }
 	public function lock()
 	{
 		$ok=true;
