@@ -15,10 +15,14 @@
 namespace ZedBoot\System\Session;
 interface SessionInterface extends \ZedBoot\System\Error\ErrorReporterInterface
 {
+	/**
+	 * @param $seconds int 0 for no expiry, minimum of 30 otherwise
+	 */
 	public function setExpiry($seconds);
 	/**
+	 * If the DataStore has not been accessed in the expiry period, it should be cleared
 	 * @param $key String alphanumeric segments delimited by forward slash
-	 * @param $expiry mixed optional expiry in seconds, if null default will be used
+	 * @param $expiry mixed optional expiry in seconds, if null default will be used, if 0 no expiry
 	 * @param boolean $forceCreate if true, nonexistent or expired datastore will be created
 	 * @return mixed \ZedBoot\System\DataStore\DataStoreInterface on success, null if $forceCreate is false and datastore was expired or nonexistent, false on error
 	 */
