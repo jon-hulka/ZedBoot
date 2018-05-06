@@ -1,6 +1,6 @@
 <?php
 /**
- * Interface AuthenticationInterface | ZedBoot/System/Auth/AuthenticationInterface.class.php
+ * Interface AuthenticatorInterface | ZedBoot/System/Auth/AuthenticatorInterface.class.php
  * @license     GNU General Public License, version 3
  * @package     System
  * @subpackage  Auth
@@ -10,10 +10,10 @@
 
 /**
  * User authentication
- * AuthenticationInterface defines a model for authenticating user logins
+ * AuthenticatorInterface defines a model for authenticating user logins
  */
 namespace ZedBoot\System\Auth;
-interface AuthenticationInterface extends \ZedBoot\System\Error\ErrorReporterInterface
+interface AuthenticatorInterface extends \ZedBoot\System\Error\ErrorReporterInterface
 {
 	/**
 	 * Providing a separate function for this prevents the user name from getting into error logs if something goes wrong during authentication
@@ -24,7 +24,7 @@ interface AuthenticationInterface extends \ZedBoot\System\Error\ErrorReporterInt
 	 */
 	public function setPassword($password);
 	/**
-	 * @return boolean true on success, false on failure
+	 * @return mixed user id on success, false on failure
 	 */
 	public function authenticate();
 }

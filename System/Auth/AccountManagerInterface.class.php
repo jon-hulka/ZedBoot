@@ -19,7 +19,7 @@ interface AccountManagerInterface extends \ZedBoot\System\Error\ErrorReporterInt
 	 * @param $name String unique user name
 	 * @param $info Array user information such as first and last name, etc
 	 * @param $roles Array user permissions
-	 * @return mixed user id on success, false on failure
+	 * @return mixed false on error, user id on success
 	 */
 	public function createUser($name,Array $info,Array $roles);
 	public function deleteUser($id);

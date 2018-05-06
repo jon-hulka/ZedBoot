@@ -20,7 +20,7 @@ interface AccountInfoInterface extends \ZedBoot\System\Error\ErrorReporterInterf
 	public function setSearchNames(array $names);
 	public function clearSearchParameters();
 	/**
-	 * @return Array ('id'=>...,'name'=>...,'roles'=>array(...),info=>array(...))
+	 * @return mixed on error false, on success Array(Array('id'=>...,'name'=>...,'roles'=>array(...),info=>array(...)))
 	 */
 	public function getUsers();
 }

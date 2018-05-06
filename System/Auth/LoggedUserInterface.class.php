@@ -17,39 +17,16 @@ interface LoggedUserInterface extends \ZedBoot\System\Error\ErrorReporterInterfa
 {
 	/**
 	 * Should implicitly load data if not loaded
-	 * @return mixed array of user properties if a user is logged in, null if no user logged in, false on error
+	 * @return mixed false on error, null if no user logged in, on success Array('id'=><user id>,'name'=><user name>,'info'=><info>,'roles'=><roles>)
 	 */
 	public function getUser();
 	/**
-	 * Should implicitly load data if not loaded
-	 * @return mixed user id if logged in, null if not logged in, false on error
+	 * Sets user for the session
+	 * @return boolean error status
 	 */
-	public function getId();
+	public function setUser($id);
 	/**
-	 * Should implicitly load data if not loaded
-	 * @return mixed user name if logged in, null if not logged in, false on error
-	 */
-	public function getName();
-	/**
-	 * Should implicitly load data if not loaded
-	 * @return mixed user info if logged in, null if not logged in or no info available, false on error
-	 */
-	public function getInfo();
-	/**
-	 * Should implicitly load data if not loaded
-	 * @return mixed array of roles if logged in, null if not logged in, false on error
-	 */
-	public function getRoles();
-	/**
-	 * Sets user data for the session
-	 * @param $id String user id
-	 * @param $name String user name
-	 * @param $info Array user information such as first and last name, etc
-	 * @param $roles Array user permissions
-	 */
-	public function setUser($id,$name,Array $info,Array $roles);
-	/**
-	 * Clears user data for the session
+	 * Clears user for the session
 	 */
 	public function clearUser();
 }
