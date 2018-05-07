@@ -62,6 +62,7 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 			$result=$routeString;
 			$this->urlParts=$urlParts;
 			$this->urlParameters=array();
+			$this->baseURL=$routeString;
 		}
 		else
 		{
