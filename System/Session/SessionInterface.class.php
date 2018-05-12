@@ -16,10 +16,6 @@ namespace ZedBoot\System\Session;
 interface SessionInterface extends \ZedBoot\System\Error\ErrorReporterInterface
 {
 	/**
-	 * @param $seconds int 0 for no expiry, minimum of 30 otherwise
-	 */
-	public function setExpiry($seconds);
-	/**
 	 * If the DataStore has not been accessed in the expiry period, it should be cleared
 	 * @param $key String alphanumeric segments delimited by forward slash
 	 * @param $expiry mixed optional expiry in seconds, if null default will be used, if 0 no expiry
@@ -30,7 +26,7 @@ interface SessionInterface extends \ZedBoot\System\Error\ErrorReporterInterface
 	/**
 	 * Run garbage collection
 	 * This might be done automatically - check implementation for specifics
-	 * @param mixed $lifetime seconds: should be much longer than expiry of any session instance, null for default
+	 * @param mixed $lifetime seconds: should match or exceed the expiry of any session instance, null for default
 	 */
 	public function gc($lifetime=null);
 }
