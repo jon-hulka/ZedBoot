@@ -9,7 +9,7 @@
  */
 
 namespace ZedBoot\System\Session;
-interface SessionFactoryInterface implements \ZedBoot\System\Error\ErrorReporterInterface
+class FileSessionFactory implements \ZedBoot\System\Session\SessionFactoryInterface
 {
 	protected
 		$savePath=null,
@@ -22,6 +22,7 @@ interface SessionFactoryInterface implements \ZedBoot\System\Error\ErrorReporter
 		$this->expiry=$expiry;
 		$this->gcChance=$gcChance;
 	}
+	public function getError(){ return $this->error; }
 	public function getSession($sessionId)
 	{
 		$result=false;

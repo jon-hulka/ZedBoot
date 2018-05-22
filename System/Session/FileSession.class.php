@@ -43,6 +43,7 @@ class FileSession implements \ZedBoot\System\Session\SessionInterface
 	{
 		$this->savePath=$savePath;
 		$this->sessionId=$sessionId;
+//This dependency is hardwired - will it be a problem?
 		$this->fsTools=new \ZedBoot\System\Utilities\FileSystemTools($this->savePath);
 		$this->expiry=($expiry===null)?static::$defaultExpiry:$expiry;
 		$this->gcChance=($gcChance===null)?static::$defaultGCChance:$gcChance;

@@ -13,7 +13,7 @@
  * 'https' and 'byRole' options can be nested.
  * if no subroute is selected, any unused 'https' or 'byRole' options will be stripped from the route data
  */
-namespace \ZedBoot\System\Bootstrap;
+namespace ZedBoot\System\Bootstrap;
 class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 {
 	protected
@@ -31,6 +31,7 @@ class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInter
 	
 	public function parseURL($url)
 	{
+		$result=false;
 		$this->routeData=null;
 		try
 		{
@@ -38,42 +39,47 @@ class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInter
 			$routeData=$this->router->getRouteData();
 			if(!is_array($routeData)) throw new \Exception('System error: expected array in route data.');
 			$this->routeData=$this->parseRouteData($routeData);
+			$result=true;
 		}
 		catch(\Exception $e)
 		{
 			error_log($e);
 			$this->error=$e->getMessage();
 		}
+		return $result;
 	}
 	
 	public function getBaseURL()
 	{
 		$result=$this->router->getBaseURL();
 		if($result===false) $this->error=$this->router->getError();
+		return $result;
 	}
 	public function getURLParameters()
 	{
 		$result=$this->router->getURLParameters();
 		if($result===false) $this->error=$this->router->getError();
+		return $result;
 	}
-	public function getURLParts(){ return $this->router->getURLParts(); }
+	public function getURLParts()
 	{
-		$result=$this->router->getURLParameters();
+		$result=$this->router->getURLParts();
 		if($result===false) $this->error=$this->router->getError();
+		return $result;
 	}
 	public function getRouteData(){ return $this->routeData; }
 	
-	public function parseRouteData($routeData)
+	protected function parseRouteData($routeData)
 	{
 		$result=false;
 		$subroute=null;
 		if(array_key_exists('https',$routeData) && 
 			(
-				(array_key_exists("HTTPS", $_SERVER) && 'on' === $_SERVER["HTTPS"]) ||
-				(array_key_exists("SERVER_PORT", $_SERVER) && 443 === (int)$_SERVER["SERVER_PORT"]) ||
-				(array_key_exists("HTTP_X_FORWARDED_SSL", $_SERVER) && 'on' === $_SERVER["HTTP_X_FORWARDED_SSL"]) ||
-				(array_key_exists("HTTP_X_FORWARDED_PROTO", $_SERVER) && 'https' === $_SERVER["HTTP_X_FORWARDED_PROTO"])
-			)
+				(!empty($_SERVER['HTTPS']) && 'off' != $_SERVER['HTTPS']) ||
+				(array_key_exists('SERVER_PORT', $_SERVER) && 443 === (int)$_SERVER['SERVER_PORT']) ||
+				(array_key_exists('HTTP_X_FORWARDED_SSL', $_SERVER) && 'on' === $_SERVER['HTTP_X_FORWARDED_SSL']) ||
+				(array_key_exists('HTTP_X_FORWARDED_PROTO', $_SERVER) && 'https' === $_SERVER['HTTP_X_FORWARDED_PROTO'])
+			))
 		{
 			$subroute=$routeData['https'];
 			if(!is_array($subroute)) throw new \Exception('System error: expected array for \'https\' subroute.');
@@ -86,12 +92,12 @@ class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInter
 		}
 		if($subroute===null)
 		{
-			//End condition - no subroutes to parse
+			//End condition - no subroute to parse
 			unset($routeData['https']);
 			unset($routeData['byRole']);
 			$result=$routeData;
 		}
-		else $result=parseRouteData($subroute);
+		else $result=$this->parseRouteData($subroute);
 		return $result;
 	}
 	
@@ -99,7 +105,7 @@ class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInter
 	{
 		$result=null;
 		$user=null;
-		if(false===($user=$this->loggedUser->getUser()) throw new \Exception($this->loggedUser->getError());
+		if(false===($user=$this->loggedUser->getUser())) throw new \Exception('System error: failed to retreived logged user.');
 		if($user!==null && is_array($user['roles']))
 		{
 			$roles=$user['roles'];

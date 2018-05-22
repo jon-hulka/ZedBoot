@@ -41,7 +41,7 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 			$this->urlParts=null;
 			$this->urlParameters=null;
 			error_log($e);
-			$this->error='System error: route not found.');
+			$this->error=$e->getMessage();
 		}
 		return $result;
 	}
@@ -86,11 +86,14 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 			$this->urlParts=array();
 			//filterRoutes() will transfer parts from $this->urlParameters to $this->urlParts as it parses through
 			$routeParts=$this->filterRoutes($exploded,$this->urlParameters,$this->urlParts);
-			//$routeParts now has the route string match including wildcards - it is the key to our routes array
-			//$urlParts now has the route string match as requested
-			//$urlParameters has all the trailing unmatched url segments
-			$result=implode('/',$routeParts);
-			$this->baseURL=implode('/',$this->urlParts);
+			if(false!==$routeParts)
+			{
+				//$routeParts now has the route string match including wildcards - it is the key to our routes array
+				//$urlParts now has the route string match as requested
+				//$urlParameters has all the trailing unmatched url segments
+				$result=implode('/',$routeParts);
+				$this->baseURL=implode('/',$this->urlParts);
+			}
 		}
 		return $result;
 	}
@@ -132,7 +135,7 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 				//All remaining subroutes are empty, which means all routes matched to this point are identical
 				//... which should mean that there is only one route
 				//so if this happens, something went wrong
-				throw new \Exception('This should never happen, multiple identical routes');
+				throw new \Exception('System error: This should never happen, multiple identical routes');
 			}
 			else
 			{
@@ -149,34 +152,10 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 					$suffixes[]=$item;
 				}
 				$search=$this->filterRoutes($suffixes,$remainingURLParts,$usedURLParts);
-/*
-//Refactoring - this is overkill
-				if($search===false)
-				{
-					//Recursive search came up empty - choose the longest of the previous matches
-					//All routes passed to this function are valid, its purpose is to find the best
-					//So this is another impossible situation
-					throw new \Exception('This should never happen, recursion failed to find a match.');
-					$max=-1;
-					$result='';
-					foreach($routes as $item)
-					{
-						$c=count($item);
-						if($max<0 || $c>$max)
-						{
-							$max=$c;
-							$result=$item;
-						}
-						$c=count($result);
-						for($i=0; $i<$c; $i++) $usedURLParts[]=array_shift($remainingURLParts);
-					}
-				}
-				else
-*/
-				$result=array_merge(array($prefix),$search); //Recursive search was successful
+				if($search!==false) $result=array_merge(array($prefix),$search); //Recursive search was successful, otherwise return value will be false
 			}
 		}
-		else if($count==1) //End condition - just one found - this is the one
+		else if($count==1) //End condition - just one found - this is it
 		{
 			$result=$routes[0];
 			$c=count($result);

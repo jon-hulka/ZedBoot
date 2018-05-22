@@ -12,7 +12,7 @@
  * Allows creation of SessionInterface instances at run-time after session id is known.
  */
 namespace ZedBoot\System\Session;
-interface SessionFactoryInterface implements \ZedBoot\System\Error\ErrorReporterInterface
+interface SessionFactoryInterface extends \ZedBoot\System\Error\ErrorReporterInterface
 {
 	public function getSession($sessionId);
 }
