@@ -87,7 +87,8 @@ function zbInit()
 			throw new \Exception('Could not load url router: '.$dependencyLoader->getError());
 
 		//Resolve the route
-		if(!$router->parseURL($_SERVER['REQUEST_URI']))
+		$url=explode('?',$_SERVER['REQUEST_URI'],2);
+		if(!$router->parseURL($url[0]))
 			throw new \Exception('Could not parse route: '.$router->getError());
 
 		//Load route data
