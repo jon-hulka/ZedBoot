@@ -25,22 +25,25 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 	public function __construct(Array $routes){ $this->routes=$routes; }
 	public function parseURL($url)
 	{
-		$ok=true;
 		$routeKey=null;
 		$data=null;
-		if($ok)
+		$result=false;
+		try
 		{
 			$routeString=trim($url,'/');
 			$routeKey=$this->parseRoute($routeString);
-			$ok=$routeKey!==false;
+			if(!array_key_exists($routeKey,$this->routes)) throw new \Exception('System error: route not found.');
+			$this->routeData=$this->routes[$routeKey];
+			$result=true;
 		}
-		if($ok && !array_key_exists($routeKey,$this->routes))
+		catch(\Exception $e)
 		{
-			$ok=false;
-			$this->error=get_class($this).'::'.__FUNCTION__.': invalid route key.';
+			$this->urlParts=null;
+			$this->urlParameters=null;
+			error_log($e);
+			$this->error='System error: route not found.');
 		}
-		if($ok) $this->routeData=$this->routes[$routeKey];
-		return $ok;
+		return $result;
 	}
 	public function getRouteData(){ return $this->routeData; }
 	public function getBaseURL(){ return $this->baseURL; }
@@ -48,7 +51,6 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 	public function getURLParts(){ return $this->urlParts; }
 	private function parseRoute($routeString)
 	{
-		if(static::$debug) $this->debug('routeString: '.json_encode($routeString));
 		$result=false;
 		$urlParts=null;
 		$found=null;
@@ -78,7 +80,6 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 			$searchString.=str_repeat(')?',count($urlParts));
 			$searchString='/^'.$searchString.'$/';
 			$matches=preg_grep($searchString,array_keys($this->routes));
-			if(static::$debug) $this->debug('matches: '.json_encode($matches));
 			$exploded=array();
 			foreach($matches as $match)$exploded[]=empty($match)?array():explode('/',$match);
 			$this->urlParameters=$urlParts;
@@ -88,17 +89,8 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 			//$routeParts now has the route string match including wildcards - it is the key to our routes array
 			//$urlParts now has the route string match as requested
 			//$urlParameters has all the trailing unmatched url segments
-			if($routeParts!==false)
-			{
-				$result=implode('/',$routeParts);
-				$this->baseURL=implode('/',$this->urlParts);
-			}
-		}
-		if($result===false)
-		{
-			$this->error=get_class($this).'::'.__FUNCTION__.': route not found.';
-			$this->urlParameters=null;
-			$this->urlParts=null;
+			$result=implode('/',$routeParts);
+			$this->baseURL=implode('/',$this->urlParts);
 		}
 		return $result;
 	}
@@ -112,7 +104,7 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 	 *  - advance one segment
 	 *  - repeat until only one route remains
 	 */
-	function filterRoutes($routes,&$remainingURLParts,&$usedURLParts)
+	private function filterRoutes($routes,&$remainingURLParts,&$usedURLParts)
 	{
 		$result=false;
 		$searchString='';
@@ -126,7 +118,7 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 		}
 		if(count($routes)>1)
 		{
-			//Exact matches take priority over wildcards - toss all wildcards
+			//Exact matches take priority over wildcards - if there are any, toss all wildcards
 			$nonWildcards=array();
 			foreach($routes as $item) if(count($item)>0 && $item[0]!='*') $nonWildcards[]=$item;
 			if(count($nonWildcards)>0) $routes=$nonWildcards;
@@ -140,8 +132,7 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 				//All remaining subroutes are empty, which means all routes matched to this point are identical
 				//... which should mean that there is only one route
 				//so if this happens, something went wrong
-				$result=array();
-				$this->debug('Impossible situation, multiple identical routes');
+				throw new \Exception('This should never happen, multiple identical routes');
 			}
 			else
 			{
@@ -158,12 +149,14 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 					$suffixes[]=$item;
 				}
 				$search=$this->filterRoutes($suffixes,$remainingURLParts,$usedURLParts);
+/*
+//Refactoring - this is overkill
 				if($search===false)
 				{
 					//Recursive search came up empty - choose the longest of the previous matches
 					//All routes passed to this function are valid, its purpose is to find the best
 					//So this is another impossible situation
-					$this->debug('Impossible situation, recursion failed to find a match');
+					throw new \Exception('This should never happen, recursion failed to find a match.');
 					$max=-1;
 					$result='';
 					foreach($routes as $item)
@@ -178,7 +171,9 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 						for($i=0; $i<$c; $i++) $usedURLParts[]=array_shift($remainingURLParts);
 					}
 				}
-				else $result=array_merge(array($prefix),$search); //Recursive search was successful
+				else
+*/
+				$result=array_merge(array($prefix),$search); //Recursive search was successful
 			}
 		}
 		else if($count==1) //End condition - just one found - this is the one
@@ -188,12 +183,6 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 			for($i=0; $i<$c; $i++) $usedURLParts[]=array_shift($remainingURLParts);
 		}
 		else $result=false; //End condition - nothing found
-		if(static::$debug) $this->debug('route: '.json_encode($result));
 		return $result;
-	}
-	private function debug($message)
-	{
-		$bt=debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS,2);
-		error_log(get_class($this).'::'.$bt[1]['function'].'(line '.$bt[0]['line'].'): '.$message);
 	}
 }
