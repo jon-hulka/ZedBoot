@@ -13,14 +13,14 @@
  * AccountInfoInterface defines a model for querying user information
  */
 namespace ZedBoot\System\Auth;
-interface AccountInfoInterface extends \ZedBoot\System\Error\ErrorReporterInterface
+interface AccountInfoInterface
 {
 	public function setSearchRoles(array $roles);
 	public function setSearchIds(array $ids);
 	public function setSearchNames(array $names);
 	public function clearSearchParameters();
 	/**
-	 * @return mixed on error false, on success Array(Array('id'=>...,'name'=>...,'roles'=>array(...),info=>array(...)))
+	 * @return Array Array(Array('id'=>...,'name'=>...,'roles'=>array(...),info=>array(...)))
 	 */
 	public function getUsers();
 }

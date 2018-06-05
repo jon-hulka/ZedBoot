@@ -13,8 +13,13 @@
  * AuthenticatorInterface defines a model for authenticating user logins
  */
 namespace ZedBoot\System\Auth;
-interface AuthenticatorInterface extends \ZedBoot\System\Error\ErrorReporterInterface
+interface AuthenticatorInterface
 {
+	/**
+	 * In case of failure, returns user-friendly message.
+	 * @return mixed user friendly message from last failure, if any.
+	 */
+	public function getMessage();
 	/**
 	 * Providing a separate function for this prevents the user name from getting into error logs if something goes wrong during authentication
 	 */
@@ -24,7 +29,7 @@ interface AuthenticatorInterface extends \ZedBoot\System\Error\ErrorReporterInte
 	 */
 	public function setPassword($password);
 	/**
-	 * @return mixed user id on success, false on failure
+	 * @return mixed user id on success, false on failure.
 	 */
 	public function authenticate();
 }

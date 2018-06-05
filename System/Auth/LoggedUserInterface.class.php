@@ -13,16 +13,15 @@
  * LoggedUserInterface defines a model for keeping track of the currently logged in user
  */
 namespace ZedBoot\System\Auth;
-interface LoggedUserInterface extends \ZedBoot\System\Error\ErrorReporterInterface
+interface LoggedUserInterface
 {
 	/**
 	 * Should implicitly load data if not loaded
-	 * @return mixed false on error, null if no user logged in, on success Array('id'=><user id>,'name'=><user name>,'info'=><info>,'roles'=><roles>)
+	 * @return mixed null if no user logged in, otherwise Array('id'=><user id>,'name'=><user name>,'info'=><info>,'roles'=><roles>)
 	 */
 	public function getUser();
 	/**
 	 * Sets user for the session
-	 * @return boolean error status
 	 */
 	public function setUser($id);
 	/**
