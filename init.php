@@ -17,7 +17,7 @@
  *  1 system.classLoader: \ZedBoot\System\Bootstrap\AutoLoader (ZedBoot namespace already configured)
  *    - Also available to both scripts as $classLoader
  *  2 system.urlRouter: \ZedBoot\System\Bootstrap\URLRouter configured by the common dependencies config file (typically <base path>/ZedBoot/App/common-dependencies.php)
- *  3 system.requestHandler: \ZedBoot\System\Bootstrap\RequestHandlerInterface top level request handler configured by the dependency config file retrieved from route data
+ *  3 system.response: \ZedBoot\System\Bootstrap\ResponseInterface top level request handler configured by the dependency config file retrieved from route data
  *  4 system.basePath String path of directory containing ZedBoot and config directories
  *    - Also available to both scripts as $basePath
  *  5 system.dependencyLoader \ZedBoot\System\DI\DependencyLoaderInterface
@@ -41,9 +41,10 @@
  *    c each parameter is also available as a dependency. ie $basePath is also available as 'system.basePath', etc
  *  2 route dependency script for each route
  *    To be loaded into dependency loader once retrieved from url router (C-1-b-i)
- *    b system.requestHandler (\ZedBoot\System\Bootstrap\RequestHandlerInterface) must be defined in this config file
+ *    b system.response (\ZedBoot\System\Bootstrap\ResponseInterface) must be defined in this config file
  *    c each parameter is also available as a dependency: 'system.baseURL', etc
  */
+use \ZedBoot\System\Error\ZBError as Err;
 function zbInit()
 {
 	$ok=true;
@@ -54,9 +55,10 @@ function zbInit()
 	$dependenciesConfigPath=$basePath.'/ZedBoot/App/common-dependencies.php';
 	$router=null;
 	$routeData=null;
-	$requestHandler=null;
+	$response=null;
+	$output=null;
 	$configLoaderParameters=array();
-
+	$obStarted=false;
 	try
 	{
 		//Set up the ZedBoot namespace
@@ -79,24 +81,21 @@ function zbInit()
 			'system.dependencyConfigLoader'=>$configLoader,
 		));
 
-		if(!$configLoader->loadConfig($dependenciesConfigPath,$configLoaderParameters))
-			throw new \Exception('Could not load common dependency configuration: '.$configLoader->getError());
+		$configLoader->loadConfig($dependenciesConfigPath,$configLoaderParameters);
 	
 		//Get url router
-		if(!$dependencyLoader->getDependency('system.urlRouter',$router,'\\ZedBoot\\System\\Bootstrap\\URLRouterInterface'))
-			throw new \Exception('Could not load url router: '.$dependencyLoader->getError());
+		$router=$dependencyLoader->getDependency('system.urlRouter','\\ZedBoot\\System\\Bootstrap\\URLRouterInterface');
 
 		//Resolve the route
 		$url=explode('?',$_SERVER['REQUEST_URI'],2);
-		if(!$router->parseURL($url[0]))
-			throw new \Exception('Could not parse route: '.$router->getError());
+		$router->parseURL($url[0]);
 
 		//Load route data
 		$routeData=$router->getRouteData();
 		$baseURL=$router->getBaseURL();
 		$urlParts=$router->getURLParts();
 		$urlParameters=$router->getURLParameters();
-		if(!array_key_exists('dependencyConfig',$routeData)) throw new \Exception('Dependency configuration file not specified for route '.$baseURL);
+		if(!array_key_exists('dependencyConfig',$routeData)) throw new Err('Dependency configuration file not specified for route '.$baseURL);
 
 		$configLoaderParameters['routeData']=$routeData;
 		$configLoaderParameters['baseURL']=$baseURL;
@@ -108,22 +107,38 @@ function zbInit()
 			'system.urlParts'=>$urlParts,
 			'system.urlParameters'=>$urlParameters,
 		));
-		if(!$configLoader->loadConfig($routeData['dependencyConfig'],$configLoaderParameters))
-			throw new \Exception('Could not load route dependency configuration: '.$configLoader->getError());
+		$configLoader->loadConfig($routeData['dependencyConfig'],$configLoaderParameters);
 
 		//Get the request handler
-		if(!$dependencyLoader->getDependency('system.requestHandler',$requestHandler,'\\ZedBoot\\System\\Bootstrap\\RequestHandlerInterface'))
-			throw new \Exception('Could not load request handler: '.$dependencyLoader->getError());
+		$response=$dependencyLoader->getDependency('system.response','\\ZedBoot\\System\\Bootstrap\\ResponseInterface');
 		
 		//Handle the request
-		ob_start();
-		if(!$requestHandler->handleRequest()) throw new \Exception('Could not handle request: '.$requestHandler->getError());
-		ob_end_clean();
-
-		$requestHandler->writeResponse();
+		ob_start(); $obStarted=true; //$response shouldn't write anything to output - if it does, ignore.
+		$response->handleRequest();
+		$output=$response->getResponseText();
+		$headers=$response->getHeaders();
+		if(!is_array($headers)) throw new Err('Expected array from '.get_class($response).'::getHeaders(), got '.getType($headers).'.');
+		foreach($headers as $header)
+		{
+			//Bad headers will be handled before any are sent. If any are bad, none will be sent
+			if(!is_array($header)) throw new Err('Invalid header in list returned by '.get_class($response).'::getHeaders(): expected array, got '.getType($header).'.');
+			if(count($header)<1) throw new Err('invalid header in list returned by '.get_class($response).'::getHeaders(): Each header must have at least one parameter.');
+		}
+		foreach($headers as $header)
+		{
+			$h=array_shift($header);
+			$r=true;
+			$c=null;
+			if(count($header)>0)$r=array_shift($header);
+			if(count($header)>0)$c=array_shift($header);
+			if($c===null){ header($h,$r); } else header($h,$r,$c);
+		}
+		ob_end_clean(); $obStarted=false;
+		echo $output;
 	}
 	catch(\Exception $e)
 	{
+		if($obStarted) ob_end_clean();
 		error_log($e);
 		header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
 		echo '<h1>Server error.</h1>';
