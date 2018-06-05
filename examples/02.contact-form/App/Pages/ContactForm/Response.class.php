@@ -1,26 +1,27 @@
 <?php
 namespace ZedBoot\App\Pages\ContactForm;
-class ContactForm implements \ZedBoot\System\Bootstrap\RequestHandlerInterface
+class Response implements \ZedBoot\System\Bootstrap\ResponseInterface
 {
-	protected
-		$errorLogger=null;
-	public function __construct(
-		\ZedBoot\System\DI\DependencyLoaderInterface $dependencyLoader,
-		\ZedBoot\System\Error\ErrorLoggerInterface $errorLogger)
+	public function __construct()
 	{
-		$this->dependencyLoader=$dependencyLoader;
-		$this->errorLogger=$errorLogger;
 	}
-
-	public function getError(){ return $this->errorLogger->getError(); }
 
 	public function handleRequest()
 	{
-		return true;
+	}
+	
+	public function getHeaders()
+	{
+		return array();
 	}
 
-	public function writeResponse()
+	public function getResponseText()
 	{
+		//For more complex pages, this should be delegated to a view
+		//In this case, it is the only thing this class does
+		ob_start();
+		try
+		{
 ?>
 <html>
 	<head>
@@ -64,5 +65,12 @@ $(function(){
 	</script>
 </html>
 <?php
+		}
+		catch(\Exception $e)
+		{
+			ob_end_clean();
+			throw $e;
+		}
+		return ob_get_clean();
 	}
 }

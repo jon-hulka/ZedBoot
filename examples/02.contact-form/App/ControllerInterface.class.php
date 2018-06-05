@@ -1,6 +1,6 @@
 <?php
 namespace ZedBoot\App;
-interface ControllerInterface extends \ZedBoot\System\Error\ErrorReporterInterface
+interface ControllerInterface
 {
 	public function update();
 }

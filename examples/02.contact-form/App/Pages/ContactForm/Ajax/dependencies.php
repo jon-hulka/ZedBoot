@@ -1,0 +1,23 @@
+<?php
+$services=array(
+	'system.response'=>array(
+		'\\ZedBoot\\App\\Pages\\AjaxResponse',
+		array('ajax.controller','ajax.view'),
+		true
+	),
+	'model'=>array(
+		'\\ZedBoot\\App\\Pages\\ContactForm\\Ajax\\MailerModelTest',
+		array('contact.email'),
+		true
+	),
+	'ajax.controller'=>array(
+		'\\ZedBoot\\App\\Pages\\ContactForm\\Ajax\\MailerController',
+		array('model'),
+		true
+	),
+	'ajax.view'=>array(
+		'\\ZedBoot\\App\\Pages\\ContactForm\\Ajax\\MailerView',
+		array('model'),
+		true
+	),
+);

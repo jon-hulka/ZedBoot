@@ -1,29 +1,22 @@
 <?php
-namespace ZedBoot\App\Pages\ContactForm;
+namespace ZedBoot\App\Pages\ContactForm\Ajax;
 class MailerModelTest implements MailerModelInterface
 {
 	protected
-		$errorLogger=null,
 		$contactEmail=null,
 		$status='unknown',
 		$statusMessage='';
-	public function getError()
-	{
-		return $this->errorLogger->getError();
-	}
-	public function __construct(\ZedBoot\System\Error\ErrorLoggerInterface $errorLogger, $contactEmail)
+	public function __construct($contactEmail)
 	{
 		$this->contactEmail=$contactEmail;
-		$this->errorLogger=$errorLogger;
 	}
 	public function send($replyTo,$subject,$message)
 	{
-		$ok=true;
+		//Randomly select a result
 		$statii=array(array('success','Message has been sent.'),array('fail','invalid email address.'),array('bot','Sorry, you appear to be a bot.'));
 		$s=$statii[rand(0,2)];
 		$this->status=$s[0];
 		$this->statusMessage=$s[1];
-		return $ok;
 	}
 	/**
 	 * @return String 'success', 'fail', 'bot', 'unknown'

@@ -1,5 +1,6 @@
 <?php
-$notFound=array('dependencyConfig'=>$basePath.'/ZedBoot/App/Pages/not-found-dependencies.php');
+$pagesPath=$basePath.'/ZedBoot/App/Pages';
+$notFound=array('dependencyConfig'=>$pagesPath.'/NotFound/dependencies.php');
 $parameters=array(
 //Home page view - no controller necessary
 //Home page ajax:
@@ -7,12 +8,11 @@ $parameters=array(
 // - controller
 // - models
 // - view
-	'system.dependencyLoader'=>$dependencyLoader,
 	'system.routes'=>array(
 		'*'=>$notFound,
-		''=>array('dependencyConfig'=>$basePath.'/ZedBoot/App/Pages/ContactForm/contact-form-dependencies.php'),
+		''=>array('dependencyConfig'=>$pagesPath.'/ContactForm/contact-form-dependencies.php'),
 		'ajax/*'=>$notFound,
-		'ajax/sendContactMessage'=>array('dependencyConfig'=>$basePath.'/ZedBoot/App/Pages/ContactForm/mailer-dependencies.php'),
+		'ajax/sendContactMessage'=>array('dependencyConfig'=>$pagesPath.'/ContactForm/Ajax/dependencies.php'),
 	),
 	'contact.email'=>'...'
 );
@@ -23,11 +23,6 @@ $services=array(
 		array('system.routes'),
 		true
 	),
-	'system.errorLogger'=>array(
-		'\\ZedBoot\\System\\Error\\SimpleErrorLogger',
-		array(),
-		true
-	)
 );
 
 /*

@@ -1,15 +1,7 @@
 <?php
 namespace ZedBoot\App;
-interface ViewInterface extends \ZedBoot\System\Error\ErrorReporterInterface
+interface ViewInterface
 {
-	/**
-	 * If anything can break, it should be done here
-	 * @return boolean error status
-	 */
 	public function init();
-	/**
-	 * Only for setting response headers and writing output
-	 * @return void
-	 */
-	public function output();
+	public function getOutput();
 }
