@@ -15,12 +15,12 @@
  * the client's cookie value is regenerated.
  */
 namespace ZedBoot\System\Session;
-interface CookieInterface extends \ZedBoot\System\Error\ErrorReporterInterface
+interface CookieInterface
 {
 	/**
 	 * @param $create boolean if true and cookie doesn't exist, it will be created.
 	 * @param $regenerate boolean if true, the cookie key will be regenerated.
-	 * @return mixed false on error, null if cookie does not exist or is expired, internal cookie id otherwise (this value will not be affected by $regenerate)
+	 * @return mixed null if cookie does not exist or is expired, internal cookie id otherwise (this value will not be affected by $regenerate)
 	 */
 	public function getId($create=true,$regenerate=false);
 	/**

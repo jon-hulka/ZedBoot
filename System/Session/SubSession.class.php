@@ -14,6 +14,7 @@
  */
 
 namespace ZedBoot\System\Session;
+use \ZedBoot\System\Error\ZBError as Err;
 class SubSession implements \ZedBoot\System\Session\SessionInterface
 {
 	protected
@@ -29,14 +30,9 @@ class SubSession implements \ZedBoot\System\Session\SessionInterface
 		$this->session=$session;
 		$this->subPath=trim($subPath,'/');
 	}
-	public function setExpiry($seconds){ $this->expiry=$seconds; }
 	public function getDataStore($key,$expiry=null)
 	{
 		if(empty($expiry)) $expiry=$this->expiry;
 		return $this->session->getDataStore($this->subPath.'/'.trim($key,'/'),$expiry);
 	}
-	/**
-	 * Use with caution, it affects all other attached subsessions
-	 */
-	public function gc($lifetime=null){ return $this->session->gc($lifetime); }
 }

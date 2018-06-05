@@ -9,32 +9,21 @@
  */
 
 namespace ZedBoot\System\Session;
+use \ZedBoot\System\Error\ZBError as Err;
 class FileSessionFactory implements \ZedBoot\System\Session\SessionFactoryInterface
 {
 	protected
 		$savePath=null,
 		$expiry=null,
-		$gcChance=null,
-		$error=null;
+		$gcChance=null;
 	public function __construct($savePath,$expiry=null,$gcChance=null)
 	{
 		$this->savePath=$savePath;
 		$this->expiry=$expiry;
 		$this->gcChance=$gcChance;
 	}
-	public function getError(){ return $this->error; }
 	public function getSession($sessionId)
 	{
-		$result=false;
-		try
-		{
-			$result=new \ZedBoot\System\Session\FileSession($this->savePath,$sessionId,$this->expiry,$this->gcChance);
-		}
-		catch(\Exception $e)
-		{
-			error_log($e);
-			$this->error=$e->getMessage();
-		}
-		return $result;
+		return new \ZedBoot\System\Session\FileSession($this->savePath,$sessionId,$this->expiry,$this->gcChance);
 	}
 }

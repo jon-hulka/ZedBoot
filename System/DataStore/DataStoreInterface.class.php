@@ -14,17 +14,16 @@
  */
 
 namespace ZedBoot\System\DataStore;
-interface DataStoreInterface extends \ZedBoot\System\Error\ErrorReporterInterface
+interface DataStoreInterface
 {
-	function lockAndRead(&$data);
+	function lockAndRead();
 	function writeAndUnlock($data);
 	function lock();
 	/**
 	 * Should return error if data store has not been locked
-	 * @param mixed $data result will be stored here
-	 * @return boolean error status
+	 * @return mixed data
 	 */
-	function read(&$data);
+	function read();
 	/**
 	 * @param mixed $data
 	 */
@@ -32,10 +31,9 @@ interface DataStoreInterface extends \ZedBoot\System\Error\ErrorReporterInterfac
 	function unlock();
 	/**
 	 * lock, read, and unlock
-	 * @param mixed $data result will be stored here
-	 * @return boolean error status
+	 * @return mixed data
 	 */
-	function quickRead(&$data);
+	function quickRead();
 	/**
 	 * lock, write, and unlock
 	 */
