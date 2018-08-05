@@ -52,7 +52,8 @@ function zbInit()
 	$urlParts=null;
 	$urlParameters=null;
 	$basePath=dirname(dirname(__FILE__));
-	$dependenciesConfigPath=$basePath.'/ZedBoot/App/common-dependencies.php';
+	$dependenciesConfigPath=$basePath.'/ZedBoot/App/DI';
+	$dependenciesConfigFile=$dependenciesConfigPath.'/common-dependencies.php';
 	$router=null;
 	$routeData=null;
 	$response=null;
@@ -67,21 +68,22 @@ function zbInit()
 		$loader->register('ZedBoot',$basePath.'/ZedBoot');
 
 		//Set up shared dependencies
-		$dependencyLoader=new \ZedBoot\System\DI\SimpleDependencyLoader();
-		$configLoader=new \ZedBoot\System\DI\DependencyConfigLoader($dependencyLoader);
+		//$dependencyLoader is a DependencyLoaderInterface and a DependencyConfigLoader
+		$dependencyLoader=new \ZedBoot\System\DI\NamespacedDependencyLoader(new \ZedBoot\System\DI\SimpleDependencyLoader(),$dependenciesConfigPath);
 		$configLoaderParameters['basePath']=$basePath;
 		$configLoaderParameters['classLoader']=$loader;
 		$configLoaderParameters['dependencyLoader']=$dependencyLoader;
-		$configLoaderParameters['dependencyConfigLoader']=$configLoader;
+		$configLoaderParameters['dependencyConfigLoader']=$dependencyLoader;
 		
 		$dependencyLoader->addParameters(array(
 			'system.basePath'=>$basePath,
 			'system.classLoader'=>$loader,
 			'system.dependencyLoader'=>$dependencyLoader,
-			'system.dependencyConfigLoader'=>$configLoader,
+			'system.dependencyConfigLoader'=>$dependencyLoader,
 		));
 
-		$configLoader->loadConfig($dependenciesConfigPath,$configLoaderParameters);
+		$dependencyLoader->setConfigParameters($configLoaderParameters);
+		$dependencyLoader->loadConfig($dependenciesConfigFile);
 	
 		//Get url router
 		$router=$dependencyLoader->getDependency('system.urlRouter','\\ZedBoot\\System\\Bootstrap\\URLRouterInterface');
@@ -107,7 +109,8 @@ function zbInit()
 			'system.urlParts'=>$urlParts,
 			'system.urlParameters'=>$urlParameters,
 		));
-		$configLoader->loadConfig($routeData['dependencyConfig'],$configLoaderParameters);
+		$dependencyLoader->setConfigParameters($configLoaderParameters);
+		$dependencyLoader->loadConfig($routeData['dependencyConfig']);
 
 		//Get the request handler
 		$response=$dependencyLoader->getDependency('system.response','\\ZedBoot\\System\\Bootstrap\\ResponseInterface');
