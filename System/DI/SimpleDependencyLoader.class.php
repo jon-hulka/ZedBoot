@@ -87,7 +87,8 @@ class SimpleDependencyLoader implements \ZedBoot\System\DI\DependencyLoaderInter
 		}
 		else
 		{
-			if(!array_key_exists($id,$this->definitions)) throw new Err('Attempt to get undefined dependency: '.json_encode($id).'.');
+			if(!array_key_exists($id,$this->definitions))
+				throw new \ZedBoot\System\DI\UndefinedDependencyException('Attempt to get undefined dependency: '.json_encode($id).'.',$id);
 			switch($this->definitions[$id]['type'])
 			{
 				case 'parameter':

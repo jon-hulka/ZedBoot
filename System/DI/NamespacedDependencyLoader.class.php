@@ -42,19 +42,43 @@ class NamespacedDependencyLoader extends \ZedBoot\System\DI\DependencyConfigLoad
 	}
 	public function getDependency($id,$classType=null)
 	{
-		$parts=explode(':',$id);
-		if(count($parts)>1) $this->loadNamespace($parts[0]);
-		return $this->dependencyLoader->getDependency($id,$classType);
+//Any unresolved namespaces might be buried deeper in the dependency chain,
+//so we must listen for UndefinedDependencyException and handle it accordingly
+//To do: find out if doing this via try/catch is going to be a performance problem
+//To do: test on cases where the dependency chain has multiple unresolved namespaces
+//(may not be necessary to build a test, this will likely come up in development)
+		$result=null;
+		try
+		{
+			$result=$this->dependencyLoader->getDependency($id,$classType);
+		}
+		catch(\ZedBoot\System\DI\UndefinedDependencyException $e)
+		{
+			$undefinedId=$e->getDependencyId();
+			$parts=explode(':',$undefinedId);
+			if(count($parts)>1)
+			{
+				//This is a namespaced dependency
+				$ns=$parts[0];
+				$path=$this->configPath.'/'.$ns.'.php';
+				if(false===array_search($path,$this->loadedConfigurations,true))
+				{
+					//The namespace isn't loaded yet, load it
+					$this->loadConfig($path);
+					//Try again from the top
+					//This could happen multiple times if there are multiple namespaces in the dependency chain
+					$result=$this->getDependency($id,$classType);
+				}
+				//Namespace is already loaded, this is an error
+				else throw $e;
+			}
+		}
+		return $result;
 	}
 	public function loadConfig($path,array $configParameters=null)
 	{
 		parent::loadConfig($path,$configParameters);
 		//Remember loaded namespaces so loadNamespace won't try again
 		$this->loadedConfigurations[]=$path;
-	}
-	protected function loadNamespace($namespace)
-	{
-		$path=$this->configPath.'/'.$namespace.'.php';
-		if(false===array_search($path,$this->loadedConfigurations,true)) $this->loadConfig($path);
 	}
 }
