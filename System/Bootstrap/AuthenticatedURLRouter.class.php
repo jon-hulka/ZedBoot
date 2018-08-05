@@ -14,6 +14,7 @@
  * if no subroute is selected, any unused 'https' or 'byRole' options will be stripped from the route data
  */
 namespace ZedBoot\System\Bootstrap;
+use \ZedBoot\System\Error\ZBError as Err;
 class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 {
 	protected
@@ -31,47 +32,21 @@ class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInter
 	
 	public function parseURL($url)
 	{
-		$result=false;
 		$this->routeData=null;
-		try
-		{
-			if(!$this->router->parseURL($url)) throw new \Exception('System error: route not found.');
-			$routeData=$this->router->getRouteData();
-			if(!is_array($routeData)) throw new \Exception('System error: expected array in route data.');
-			$this->routeData=$this->parseRouteData($routeData);
-			$result=true;
-		}
-		catch(\Exception $e)
-		{
-			error_log($e);
-			$this->error=$e->getMessage();
-		}
-		return $result;
+		$this->router->parseURL($url);
+		$routeData=$this->router->getRouteData();
+		if(!is_array($routeData)) throw new \Err('Expected array in route data.');
+		$this->routeData=$this->parseRouteData($routeData);
 	}
 	
-	public function getBaseURL()
-	{
-		$result=$this->router->getBaseURL();
-		if($result===false) $this->error=$this->router->getError();
-		return $result;
-	}
-	public function getURLParameters()
-	{
-		$result=$this->router->getURLParameters();
-		if($result===false) $this->error=$this->router->getError();
-		return $result;
-	}
-	public function getURLParts()
-	{
-		$result=$this->router->getURLParts();
-		if($result===false) $this->error=$this->router->getError();
-		return $result;
-	}
+	public function getBaseURL(){ return $this->router->getBaseURL(); }
+	public function getURLParameters(){ return $this->router->getURLParameters(); }
+	public function getURLParts(){ return $this->router->getURLParts(); }
 	public function getRouteData(){ return $this->routeData; }
 	
 	protected function parseRouteData($routeData)
 	{
-		$result=false;
+		$result=null;
 		$subroute=null;
 		if(array_key_exists('https',$routeData) && 
 			(
@@ -82,12 +57,12 @@ class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInter
 			))
 		{
 			$subroute=$routeData['https'];
-			if(!is_array($subroute)) throw new \Exception('System error: expected array for \'https\' subroute.');
+			if(!is_array($subroute)) throw new \Err('Expected array for \'https\' subroute.');
 		}
 		else if(array_key_exists('byRole',$routeData))
 		{
 			$byRole=$routeData['byRole'];
-			if(!is_array($byRole)) throw new \Exception('System error: expected array for \'byRole\' subroutes.');
+			if(!is_array($byRole)) throw new \Err('Expected array for \'byRole\' subroutes.');
 			$subroute=parseRoles($byRole);
 		}
 		if($subroute===null)
@@ -111,7 +86,7 @@ class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInter
 			$roles=$user['roles'];
 			foreach($byRole as $k=>$subroute) if(false!==array_search($k,$roles))
 			{
-				if(!is_array($subroute)) throw new \Exception('System error: expected array for \''.$k.'\' subroute.');
+				if(!is_array($subroute)) throw new \Err('Expected array for \''.$k.'\' subroute.');
 				$result=$subroute;
 				break;
 			}

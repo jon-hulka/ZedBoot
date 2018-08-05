@@ -9,6 +9,7 @@
  */
 
 namespace ZedBoot\System\Bootstrap;
+use \ZedBoot\System\Error\ZBError as Err;
 class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 {
 	private static
@@ -19,31 +20,16 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 		$baseURL=null,
 		$urlParameters=null,
 		$urlParts=null,
-		$roles=null,
-		$error=null;
-	public function getError(){ return $this->error; }
+		$roles=null;
 	public function __construct(Array $routes){ $this->routes=$routes; }
 	public function parseURL($url)
 	{
 		$routeKey=null;
 		$data=null;
-		$result=false;
-		try
-		{
-			$routeString=trim($url,'/');
-			$routeKey=$this->parseRoute($routeString);
-			if(!array_key_exists($routeKey,$this->routes)) throw new \Exception('System error: route not found.');
-			$this->routeData=$this->routes[$routeKey];
-			$result=true;
-		}
-		catch(\Exception $e)
-		{
-			$this->urlParts=null;
-			$this->urlParameters=null;
-			error_log($e);
-			$this->error=$e->getMessage();
-		}
-		return $result;
+		$routeString=trim($url,'/');
+		$routeKey=$this->parseRoute($routeString);
+		if(!array_key_exists($routeKey,$this->routes)) throw new Err('Route not found.');
+		$this->routeData=$this->routes[$routeKey];
 	}
 	public function getRouteData(){ return $this->routeData; }
 	public function getBaseURL(){ return $this->baseURL; }
@@ -51,7 +37,7 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 	public function getURLParts(){ return $this->urlParts; }
 	private function parseRoute($routeString)
 	{
-		$result=false;
+		$result=null;
 		$urlParts=null;
 		$found=null;
 		if(empty($routeString))
@@ -86,14 +72,12 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 			$this->urlParts=array();
 			//filterRoutes() will transfer parts from $this->urlParameters to $this->urlParts as it parses through
 			$routeParts=$this->filterRoutes($exploded,$this->urlParameters,$this->urlParts);
-			if(false!==$routeParts)
-			{
-				//$routeParts now has the route string match including wildcards - it is the key to our routes array
-				//$urlParts now has the route string match as requested
-				//$urlParameters has all the trailing unmatched url segments
-				$result=implode('/',$routeParts);
-				$this->baseURL=implode('/',$this->urlParts);
-			}
+			//If $this->filterRoutes failed, it will have thrown an exception.
+			//$routeParts now has the route string match including wildcards - it is the key to our routes array
+			//$urlParts now has the route string match as requested
+			//$urlParameters has all the trailing unmatched url segments
+			$result=implode('/',$routeParts);
+			$this->baseURL=implode('/',$this->urlParts);
 		}
 		return $result;
 	}
@@ -109,7 +93,7 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 	 */
 	private function filterRoutes($routes,&$remainingURLParts,&$usedURLParts)
 	{
-		$result=false;
+		$result=null;
 		$searchString='';
 		$delim='';
 		if(count($routes)>1)
@@ -135,7 +119,7 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 				//All remaining subroutes are empty, which means all routes matched to this point are identical
 				//... which should mean that there is only one route
 				//so if this happens, something went wrong
-				throw new \Exception('System error: This should never happen, multiple identical routes');
+				throw new Err('This should never happen, multiple identical routes');
 			}
 			else
 			{
@@ -161,7 +145,7 @@ class SimpleURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInterface
 			$c=count($result);
 			for($i=0; $i<$c; $i++) $usedURLParts[]=array_shift($remainingURLParts);
 		}
-		else $result=false; //End condition - nothing found
+		else throw new Err('Route not found.'); //End condition - nothing found
 		return $result;
 	}
 }

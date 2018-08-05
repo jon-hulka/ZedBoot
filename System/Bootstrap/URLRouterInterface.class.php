@@ -13,7 +13,7 @@
  * Defines the interface for mapping urls
  */
 namespace ZedBoot\System\Bootstrap;
-interface URLRouterInterface extends \ZedBoot\System\Error\ErrorReporterInterface
+interface URLRouterInterface
 {
 	public function parseURL($url);
 //	public function getRouteParameter($name);
