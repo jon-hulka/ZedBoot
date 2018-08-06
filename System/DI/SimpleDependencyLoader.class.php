@@ -6,14 +6,13 @@
  * @package     System
  * @subpackage  DI
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2017, Jonathan Hulka
+ * @copyright   Copyright (c) 2017, 2018, Jonathan Hulka
  */
 
 /**
  * Dependency loader implementation
  * Provides a simple implementation of DependencyLoaderInterface
  */
-//To do: consider replacing nested dependency errors with dependency chain prefix
 /*
 To test:
 * getFactoryService
@@ -22,7 +21,6 @@ To test:
 *  - service -> factory -> service
 *  - factory -> factory
 * id conflicts
-* factory doesn't implement ErrorReporterInterface
 * factory is not an object
 * deeply nested errors involving services, factory services and parameters showing dependency path in error messages
 * nested arguments
@@ -32,36 +30,11 @@ use \ZedBoot\System\Error\ZBError as Err;
 class SimpleDependencyLoader implements \ZedBoot\System\DI\DependencyLoaderInterface
 {
 	protected
-		$configFunction=null,
-		$definitions=array(),
+		$dependencyIndex=null,
 		$singletons=array();
-	public function addParameters(array $parameters)
+	public function __construct(\ZedBoot\System\DI\DependencyIndexInterface $dependencyIndex)
 	{
-		foreach($parameters as $id=>$def) $this->addDefinition($id,array(
-				'type'=>'parameter',
-				'value'=>$def
-			));
-	}
-	public function addService($id,$className,array $arguments=null,$singleton=true)
-	{
-		if(empty($arguments)) $arguments=array();
-		$this->addDefinition($id,array(
-			'type'=>'service',
-			'class_name'=>$className,
-			'args'=>$arguments,
-			'singleton'=>$singleton
-		));
-	}
-	public function addFactoryService($id,$factoryId,$function,array $arguments=null,$singleton=true)
-	{
-		if(empty($arguments)) $arguments=array();
-		$this->addDefinition($id,array(
-			'type'=>'factory service',
-			'factory_id'=>$factoryId,
-			'function'=>$function,
-			'args'=>$arguments,
-			'singleton'=>$singleton
-		));
+		$this->dependencyIndex=$dependencyIndex;
 	}
 	public function getDependency($id,$classType=null)
 	{
@@ -87,18 +60,17 @@ class SimpleDependencyLoader implements \ZedBoot\System\DI\DependencyLoaderInter
 		}
 		else
 		{
-			if(!array_key_exists($id,$this->definitions))
-				throw new \ZedBoot\System\DI\UndefinedDependencyException('Attempt to get undefined dependency: '.json_encode($id).'.',$id);
-			switch($this->definitions[$id]['type'])
+			$def=$this->dependencyIndex->getDependencyDefinition($id);
+			switch($def['type'])
 			{
 				case 'parameter':
-					$result=$this->definitions[$id]['value'];
+					$result=$def['value'];
 					break;
 				case 'service':
-					$result=$this->loadService($id,$dependencyChain);
+					$result=$this->loadService($id,$def,$dependencyChain);
 					break;
 				case 'factory service':
-					$result=$this->loadFactoryService($id,$dependencyChain);
+					$result=$this->loadFactoryService($id,$def,$dependencyChain);
 					break;
 			}
 		}
@@ -109,16 +81,14 @@ class SimpleDependencyLoader implements \ZedBoot\System\DI\DependencyLoaderInter
 	 * @param $id
 	 * @param array $dependencyChain dependencies for the current branch of the dependency tree. Used to detect circular dependencies.
 	 */
-	protected function loadService($id,array $dependencyChain)
+	protected function loadService($id,array $def,array $dependencyChain)
 	{
 		$result=false;
-		$def=null;
 		$argValues=array();
 		//Make sure this service is not its own ancestor
 		if(false!==(array_search($id,$dependencyChain,true)))
 			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$id);
 		//Retrieve arguments needed by this service's constructor
-		$def=$this->definitions[$id];
 		$dependencyChain[]=$id;
 		$argValues=$this->extractArguments($def['args'],$dependencyChain);
 		//Create a new instance
@@ -129,14 +99,11 @@ class SimpleDependencyLoader implements \ZedBoot\System\DI\DependencyLoaderInter
 		return $result;
 	}
 	
-	protected function loadFactoryService($id,array $dependencyChain)
+	protected function loadFactoryService($id,array $def,array $dependencyChain)
 	{
 		$result=false;
-		$def=null;
-		$factoryId=null;
 		$factory=null;
 		$argValues=array();
-		$def=$this->definitions[$id];
 		$factoryId=$def['factory_id'];
 		if(false!==(array_search($factoryId,$dependencyChain,true))) throw new Err('Circular dependency on factory service '.json_encode($id));
 		$factory=$this->loadDependency($factoryId,$dependencyChain);
@@ -146,11 +113,6 @@ class SimpleDependencyLoader implements \ZedBoot\System\DI\DependencyLoaderInter
 		if($def['singleton']) $this->singletons[$id]=$result;
 		return $result;
 
-	}
-	protected function addDefinition($id,$definition)
-	{
-		if(array_key_exists($id,$this->definitions)) throw new Err($definition['type'].' id '.json_encode($id).' conflicts with existing '.$this->definitions[$id]['type']);
-		$this->definitions[$id]=$definition;
 	}
 	protected function extractArguments(array $args, array $dependencyChain, $preserveKeys=false)
 	{
