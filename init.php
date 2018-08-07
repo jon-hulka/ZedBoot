@@ -15,7 +15,7 @@
  *   At a minimum, these dependencies are available when the request handler is created:
  *  1 common:system.classLoader: \ZedBoot\System\Bootstrap\AutoLoader (ZedBoot namespace already configured)
  *    - Also available to dependency config scripts as $classLoader
- *  2 common:system.urlRouter: \ZedBoot\System\Bootstrap\URLRouter configured by the common dependencies config file (<base path>/ZedBoot/App/common.php)
+ *  2 common:system.urlRouter: \ZedBoot\System\Bootstrap\URLRouter configured by the common dependencies config file (<base path>/ZedBoot/App/DI/common.php)
  *  3 common:system.response: \ZedBoot\System\Bootstrap\ResponseInterface top level request handler configured by the dependency config file retrieved from route data
  *  4 common:system.basePath String path of directory containing ZedBoot and config directories
  *    - Also available to dependency config scripts as $basePath
@@ -33,7 +33,7 @@
  *    - Also available to dependency config scripts (after URL routing) as $urlParameters
  * C Dependencies Configuration
  *   In order for a successful page load, the common dependencies configuration script be set up:
- *  1 located at <base path>/ZedBoot/App/common.php
+ *  1 located at <base path>/ZedBoot/App/DI/common.php
  *  2 system.urlRouter (\ZedBoot\System\Bootstrap\URLRouterInterface) must be defined in this config file
  *  3 each route data array must contain a 'response' element indicating the id of the response dependency
  * 		  - this element can (and should) be loaded via dependency namespace
