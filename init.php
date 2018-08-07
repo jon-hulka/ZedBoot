@@ -1,7 +1,4 @@
 <?php
-//polyfill
-//require_once dirname(dirname(__FILE__)).'/random_compat/lib/random.php';
-//require_once dirname(dirname(__FILE__)).'/password_compat/lib/password.php';
 /**
  * A Init Procedure
  *  1 prepares the classloader for the \ZedBoot namespace
@@ -9,36 +6,29 @@
  *  3 adds common dependencies to the dependency loader
  *  4 uses the url router from common dependencies to load route data
  *  5 uses route data to identify the request handler dependency
- *  6 loads the request handler dependency (this might be defined in a different configuration script, and loaded via dependency namespace (see 3.2.a)
+ *  6 loads the request handler dependency (this might be defined in a different configuration script, and loaded via dependency namespace (see C.3)
  *  7 runs handleRequest and writeResponse on the request handler
  * B Dependencies
  *   At a minimum, these dependencies are available when the request handler is created:
  *  1 common:system.classLoader: \ZedBoot\System\Bootstrap\AutoLoader (ZedBoot namespace already configured)
  *    - Also available to dependency config scripts as $classLoader
- *  2 common:system.urlRouter: \ZedBoot\System\Bootstrap\URLRouter configured by the common dependencies config file (<base path>/ZedBoot/App/DI/common.php)
- *  3 common:system.response: \ZedBoot\System\Bootstrap\ResponseInterface top level request handler configured by the dependency config file retrieved from route data
- *  4 common:system.basePath String path of directory containing ZedBoot and config directories
+ *  2 common:system.basePath String path of directory containing ZedBoot and config directories
  *    - Also available to dependency config scripts as $basePath
- *  5 common:system.dependencyLoader \ZedBoot\System\DI\DependencyLoaderInterface
- *    - Also available to dependency config scripts as $dependencyLoader
- *  6 common:system.dependencyConfigLoader \ZedBoot\System\DI\DependencyConfigLoader
- *    - Also avaliable to dependency config scripts as $dependencyConfigLoader
- *  7 common:system.routeData as returned by system.urlRouter (C-2)
+ *  3 common:system.routeData as returned by system.urlRouter (C.2)
  *    - Also available to dependency config scripts (after URL routing) as $routeData
- *  8 common:system.baseURL as returned by system.urlRouter (C-2)
+ *  4 common:system.baseURL as returned by system.urlRouter (C.2)
  *    - Also available to dependency config scripts (after URL routing) as $baseURL
- *  9 common:system.urlParts as returned by system.urlRouter (C-2)
+ *  5 common:system.urlParts as returned by system.urlRouter (C.2)
  *    - Also available to dependency config scripts (after URL routing) as $urlParts
- *  10 common:system.urlParameters as returned by system.urlRouter (C-2)
+ *  6 common:system.urlParameters as returned by system.urlRouter (C.2)
  *    - Also available to dependency config scripts (after URL routing) as $urlParameters
  * C Dependencies Configuration
- *   In order for a successful page load, the common dependencies configuration script be set up:
+ *   In order for a successful page load, the common dependencies configuration script must be set up:
  *  1 located at <base path>/ZedBoot/App/DI/common.php
  *  2 system.urlRouter (\ZedBoot\System\Bootstrap\URLRouterInterface) must be defined in this config file
  *  3 each route data array must contain a 'response' element indicating the id of the response dependency
  * 		  - this element can (and should) be loaded via dependency namespace
  *          (ie an id of 'pages/test:response' will cause pages/test.php to be loaded into the dependency index before the dependency is resolved)
- *  4 each parameter is also available as a dependency. ie $basePath is also available as 'common:system.basePath', etc
  */
 use \ZedBoot\System\Error\ZBError as Err;
 function zbInit()
@@ -69,14 +59,10 @@ function zbInit()
 		$dependencyLoader=new \ZedBoot\System\DI\SimpleDependencyLoader($dependencyIndex);
 		$configLoaderParameters['basePath']=$basePath;
 		$configLoaderParameters['classLoader']=$loader;
-		$configLoaderParameters['dependencyLoader']=$dependencyLoader;
-		$configLoaderParameters['dependencyConfigLoader']=$dependencyLoader;
 		
 		$dependencyIndex->addParameters(array(
 			'common:system.basePath'=>$basePath,
 			'common:system.classLoader'=>$loader,
-			'common:system.dependencyLoader'=>$dependencyLoader,
-			'common:system.dependencyConfigLoader'=>$configLoader,
 		));
 
 		$configLoader->setConfigParameters($configLoaderParameters);
