@@ -44,7 +44,7 @@ class SimpleDependencyIndex implements \ZedBoot\System\DI\DependencyIndexInterfa
 	public function getDependencyDefinition($id)
 	{
 		if(!array_key_exists($id,$this->definitions))
-			throw new Err('Attempt to get undefined dependency: '.json_encode($id).'.',$id);
+			throw new Err('Attempt to get undefined dependency: '.json_encode($id).'.');
 		return $this->definitions[$id];
 	}
 	protected function addDefinition($id,$definition)

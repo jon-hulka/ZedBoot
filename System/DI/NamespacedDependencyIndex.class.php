@@ -12,14 +12,16 @@ use \ZedBoot\System\Error\ZBError as Err;
 /**
  * Adds autoloading functionality to an instance of DependencyIndexInterface
  * When getDependencyDefinition() is called, if the dependency id has the form
- * '<namespace>:<id>', the configuration file located at <configPath>/<namespace>.php
- * will be loaded (if it hasn't already been)
+ * '<namespace>:<id>', if the configuration file located at <configPath>/<namespace>.php
+ * hasn't already been loaded, it will be AND
+ * <namespace>: will be prepended to each _local_ (namespace not specified) id in the configuration parameters
  * Loading is handled by DependencyConfigLoader
  */
 class NamespacedDependencyIndex implements \ZedBoot\System\DI\DependencyIndexInterface
 {
 	protected
 		$configLoader,
+		$currentNamespace=null,
 		$dependencyIndex,
 		$loadedConfigurations=array(),
 		$configPath;
@@ -39,14 +41,31 @@ class NamespacedDependencyIndex implements \ZedBoot\System\DI\DependencyIndexInt
 	}
 	public function addParameters(array $parameters)
 	{
+		if(!empty($this->currentNamespace))
+		{
+			$namespaced=array();
+			foreach($parameters as $id=>$param) $namespaced[$this->currentNamespace.':'.$id]=$param;
+			$parameters=$namespaced;
+		}
 		$this->dependencyIndex->addParameters($parameters);
 	}
 	public function addService($id,$className,array $arguments=null,$singleton=true)
 	{
+		if(!empty($this->currentNamespace))
+		{
+			$id=$this->currentNamespace.':'.$id;
+			if($arguments!==null) $arguments=$this->namespaceArgs($arguments);
+		}
 		$this->dependencyIndex->addService($id,$className,$arguments,$singleton);
 	}
 	public function addFactoryService($id,$factoryId,$function,array $arguments=null,$singleton=true)
 	{
+		if(!empty($this->currentNamespace))
+		{
+			$id=$this->currentNamespace.':'.$id;
+			if(false===strpos($factoryId,':')) $factoryId=$this->currentNamespace.':'.$factoryId;
+			if($arguments!==null) $arguments=$this->namespaceArgs($arguments);
+		}
 		$this->dependencyIndex->addFactoryService($id,$factoryId,$function,$arguments,$singleton);
 	}
 	public function getDependencyDefinition($id)
@@ -60,10 +79,36 @@ class NamespacedDependencyIndex implements \ZedBoot\System\DI\DependencyIndexInt
 			//If the namespace isn't loaded yet, load it
 			if(false===array_search($path,$this->loadedConfigurations,true))
 			{
+				//As parameters, services, and factory services are added,
+				//$this->currentNamespace will be applied to them
+				$this->currentNamespace=$ns;
 				$this->configLoader->loadConfig($this,$path);
+				$this->currentNamespace=null;
 				$this->loadedConfigurations[]=$path;
 			}
 		}
 		return $this->dependencyIndex->getDependencyDefinition($id);
+	}
+	protected function namespaceArgs(array $args)
+	{
+		$namespaced=array();
+		foreach($args as $arg)
+		{
+			if(is_array($arg))
+			{
+				//Recurse into nested arguments
+				$namespaced[]=$this->namespaceArgs($arg);
+			}
+			else if(false===strpos($arg,':'))
+			{
+error_log(get_class($this).'::'.__FUNCTION__.': namespacing '.$arg. ' to '.$this->currentNamespace.':'.$arg);
+				//No namespace specified - this is a local argument - apply current namespace
+				$namespaced[]=$this->currentNamespace.':'.$arg;
+			}
+			else
+				//Argument already specifies a namespace
+				$namespaced[]=$arg;
+		}
+		return $namespaced;
 	}
 }

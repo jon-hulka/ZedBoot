@@ -8,41 +8,37 @@
  *  2 sets up the dependency loader
  *  3 adds common dependencies to the dependency loader
  *  4 uses the url router from common dependencies to load route data
- *  5 uses route data to identify the route dependency configuration file
- *  6 adds route dependencies to the dependency loader
- *  7 loads the request handler from route dependencies
- *  8 runs handleRequest and writeResponse on the request handler
+ *  5 uses route data to identify the request handler dependency
+ *  6 loads the request handler dependency (this might be defined in a different configuration script, and loaded via dependency namespace (see 3.2.a)
+ *  7 runs handleRequest and writeResponse on the request handler
  * B Dependencies
  *   At a minimum, these dependencies are available when the request handler is created:
- *  1 system.classLoader: \ZedBoot\System\Bootstrap\AutoLoader (ZedBoot namespace already configured)
- *    - Also available to both scripts as $classLoader
- *  2 system.urlRouter: \ZedBoot\System\Bootstrap\URLRouter configured by the common dependencies config file (typically <base path>/ZedBoot/App/common-dependencies.php)
- *  3 system.response: \ZedBoot\System\Bootstrap\ResponseInterface top level request handler configured by the dependency config file retrieved from route data
- *  4 system.basePath String path of directory containing ZedBoot and config directories
- *    - Also available to both scripts as $basePath
- *  5 system.dependencyLoader \ZedBoot\System\DI\DependencyLoaderInterface
- *    - Also available to both scripts as $dependencyLoader
- *  6 system.dependencyConfigLoader \ZedBoot\System\DI\DependencyConfigLoader
- *    - Also avaliable to both scripts as $dependencyConfigLoader
- *  7 system.routeData as returned by system.urlRouter (C-1-b)
- *    - Also available to the route script as $routeData
- *  8 system.baseURL as returned by system.urlRouter (C-1-b)
- *    - Also available to the route script as $baseURL
- *  9 system.urlParts as returned by system.urlRouter (C-1-b)
- *    - Also available to the route script as $urlParts
- *  10 system.urlParameters as returned by system.urlRouter (C-1-b)
- *    - Also available to the route script as $urlParameters
+ *  1 common:system.classLoader: \ZedBoot\System\Bootstrap\AutoLoader (ZedBoot namespace already configured)
+ *    - Also available to dependency config scripts as $classLoader
+ *  2 common:system.urlRouter: \ZedBoot\System\Bootstrap\URLRouter configured by the common dependencies config file (<base path>/ZedBoot/App/common.php)
+ *  3 common:system.response: \ZedBoot\System\Bootstrap\ResponseInterface top level request handler configured by the dependency config file retrieved from route data
+ *  4 common:system.basePath String path of directory containing ZedBoot and config directories
+ *    - Also available to dependency config scripts as $basePath
+ *  5 common:system.dependencyLoader \ZedBoot\System\DI\DependencyLoaderInterface
+ *    - Also available to dependency config scripts as $dependencyLoader
+ *  6 common:system.dependencyConfigLoader \ZedBoot\System\DI\DependencyConfigLoader
+ *    - Also avaliable to dependency config scripts as $dependencyConfigLoader
+ *  7 common:system.routeData as returned by system.urlRouter (C-2)
+ *    - Also available to dependency config scripts (after URL routing) as $routeData
+ *  8 common:system.baseURL as returned by system.urlRouter (C-2)
+ *    - Also available to dependency config scripts (after URL routing) as $baseURL
+ *  9 common:system.urlParts as returned by system.urlRouter (C-2)
+ *    - Also available to dependency config scripts (after URL routing) as $urlParts
+ *  10 common:system.urlParameters as returned by system.urlRouter (C-2)
+ *    - Also available to dependency config scripts (after URL routing) as $urlParameters
  * C Dependencies Configuration
- *   In order for a successful page load, these must be set up:
- *  1 common dependencies script
- *    a <base path>/ZedBoot/App/common-dependencies.php
- *    b system.urlRouter (\ZedBoot\System\Bootstrap\URLRouterInterface) must be defined in this config file
- *      i   each route data array must contain a 'dependencyConfig' element indicating the path of the route's dependency configuration file
- *    c each parameter is also available as a dependency. ie $basePath is also available as 'system.basePath', etc
- *  2 route dependency script for each route
- *    To be loaded into dependency loader once retrieved from url router (C-1-b-i)
- *    b system.response (\ZedBoot\System\Bootstrap\ResponseInterface) must be defined in this config file
- *    c each parameter is also available as a dependency: 'system.baseURL', etc
+ *   In order for a successful page load, the common dependencies configuration script be set up:
+ *  1 located at <base path>/ZedBoot/App/common.php
+ *  2 system.urlRouter (\ZedBoot\System\Bootstrap\URLRouterInterface) must be defined in this config file
+ *  3 each route data array must contain a 'response' element indicating the id of the response dependency
+ * 		  - this element can (and should) be loaded via dependency namespace
+ *          (ie an id of 'pages/test:response' will cause pages/test.php to be loaded into the dependency index before the dependency is resolved)
+ *  4 each parameter is also available as a dependency. ie $basePath is also available as 'common:system.basePath', etc
  */
 use \ZedBoot\System\Error\ZBError as Err;
 function zbInit()
@@ -53,7 +49,7 @@ function zbInit()
 	$urlParameters=null;
 	$basePath=dirname(dirname(__FILE__));
 	$dependenciesConfigPath=$basePath.'/ZedBoot/App/DI';
-	$dependenciesConfigFile=$dependenciesConfigPath.'/common-dependencies.php';
+	$dependenciesConfigFile=$dependenciesConfigPath.'/common.php';
 	$router=null;
 	$routeData=null;
 	$response=null;
@@ -77,17 +73,18 @@ function zbInit()
 		$configLoaderParameters['dependencyConfigLoader']=$dependencyLoader;
 		
 		$dependencyIndex->addParameters(array(
-			'system.basePath'=>$basePath,
-			'system.classLoader'=>$loader,
-			'system.dependencyLoader'=>$dependencyLoader,
-			'system.dependencyConfigLoader'=>$configLoader,
+			'common:system.basePath'=>$basePath,
+			'common:system.classLoader'=>$loader,
+			'common:system.dependencyLoader'=>$dependencyLoader,
+			'common:system.dependencyConfigLoader'=>$configLoader,
 		));
 
 		$configLoader->setConfigParameters($configLoaderParameters);
-		$configLoader->loadConfig($dependencyIndex, $dependenciesConfigFile);
+		//$configLoader->loadConfig is never explicitly called here
+		//This allows all dependencies to be properly handled by NamespacedDependencyIndex
 	
 		//Get url router
-		$router=$dependencyLoader->getDependency('system.urlRouter','\\ZedBoot\\System\\Bootstrap\\URLRouterInterface');
+		$router=$dependencyLoader->getDependency('common:system.urlRouter','\\ZedBoot\\System\\Bootstrap\\URLRouterInterface');
 
 		//Resolve the route
 		$url=explode('?',$_SERVER['REQUEST_URI'],2);
@@ -98,23 +95,22 @@ function zbInit()
 		$baseURL=$router->getBaseURL();
 		$urlParts=$router->getURLParts();
 		$urlParameters=$router->getURLParameters();
-		if(!array_key_exists('dependencyConfig',$routeData)) throw new Err('Dependency configuration file not specified for route '.$baseURL);
+		if(!array_key_exists('response',$routeData)) throw new Err('response dependency not specified for route '.$baseURL);
 
 		$configLoaderParameters['routeData']=$routeData;
 		$configLoaderParameters['baseURL']=$baseURL;
 		$configLoaderParameters['urlParts']=$urlParts;
 		$configLoaderParameters['urlParameters']=$urlParameters;
 		$dependencyIndex->addParameters(array(
-			'system.routeData'=>$routeData,
-			'system.baseURL'=>$baseURL,
-			'system.urlParts'=>$urlParts,
-			'system.urlParameters'=>$urlParameters,
+			'common:system.routeData'=>$routeData,
+			'common:system.baseURL'=>$baseURL,
+			'common:system.urlParts'=>$urlParts,
+			'common:system.urlParameters'=>$urlParameters,
 		));
 		$configLoader->setConfigParameters($configLoaderParameters);
-		$configLoader->loadConfig($dependencyIndex, $routeData['dependencyConfig']);
 
 		//Get the request handler
-		$response=$dependencyLoader->getDependency('system.response','\\ZedBoot\\System\\Bootstrap\\ResponseInterface');
+		$response=$dependencyLoader->getDependency($routeData['response'],'\\ZedBoot\\System\\Bootstrap\\ResponseInterface');
 		
 		//Handle the request
 		ob_start(); $obStarted=true; //$response shouldn't write anything to output - if it does, ignore.
