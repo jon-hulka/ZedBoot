@@ -101,7 +101,6 @@ class NamespacedDependencyIndex implements \ZedBoot\System\DI\DependencyIndexInt
 			}
 			else if(false===strpos($arg,':'))
 			{
-error_log(get_class($this).'::'.__FUNCTION__.': namespacing '.$arg. ' to '.$this->currentNamespace.':'.$arg);
 				//No namespace specified - this is a local argument - apply current namespace
 				$namespaced[]=$this->currentNamespace.':'.$arg;
 			}
