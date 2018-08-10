@@ -22,7 +22,9 @@ interface LoggedUserInterface
 	public function getMessage();
 	/**
 	 * Should implicitly load data if not loaded
-	 * @return mixed null if no user logged in, otherwise Array('id'=><user id>,'name'=><user name>,'info'=><info>,'roles'=><roles>,'syncTime'=><sync time>)
+	 * @return mixed null if no user logged in, false on failure, otherwise Array('id'=><user id>,'name'=><user name>,'info'=><info>,'roles'=><roles>,'syncTime'=><sync time>,'loginTime'=><login time>)
+	 * syncTime and loginTime should be unix timestamps (expressed in seconds, decimals are OK)
+	 * syncTime indicates last time the user was modified (if there are no recent changes, a value of 0 is acceptable)
 	 */
 	public function getUser();
 	/**
