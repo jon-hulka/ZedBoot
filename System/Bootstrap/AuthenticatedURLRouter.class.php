@@ -10,6 +10,7 @@
  * Decorates a url router with authentication support and https checking
  * if route data contains 'https' => array(...) and the request was sent by https, the subroute will be selected
  * if route data contains 'byRole' => array(<role>=>array(...), ...) and a user is logged in with one of the specified roles, the first appropriate subroute will be selected
+ * To specify any logged in user, use '*' for the role key
  * 'https' and 'byRole' options can be nested.
  * if no subroute is selected, any unused 'https' or 'byRole' options will be stripped from the route data
  */
@@ -63,7 +64,7 @@ class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInter
 		{
 			$byRole=$routeData['byRole'];
 			if(!is_array($byRole)) throw new \Err('Expected array for \'byRole\' subroutes.');
-			$subroute=parseRoles($byRole);
+			$subroute=$this->parseRoles($byRole);
 		}
 		if($subroute===null)
 		{
@@ -84,7 +85,7 @@ class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInter
 		if($user!==null && is_array($user['roles']))
 		{
 			$roles=$user['roles'];
-			foreach($byRole as $k=>$subroute) if(false!==array_search($k,$roles))
+			foreach($byRole as $k=>$subroute) if($k==='*' || false!==array_search($k,$roles))
 			{
 				if(!is_array($subroute)) throw new \Err('Expected array for \''.$k.'\' subroute.');
 				$result=$subroute;

@@ -92,21 +92,21 @@ class NamespacedDependencyIndex implements \ZedBoot\System\DI\DependencyIndexInt
 	protected function namespaceArgs(array $args)
 	{
 		$namespaced=array();
-		foreach($args as $arg)
+		foreach($args as $k=>$arg)
 		{
 			if(is_array($arg))
 			{
 				//Recurse into nested arguments
-				$namespaced[]=$this->namespaceArgs($arg);
+				$namespaced[$k]=$this->namespaceArgs($arg);
 			}
 			else if(false===strpos($arg,':'))
 			{
 				//No namespace specified - this is a local argument - apply current namespace
-				$namespaced[]=$this->currentNamespace.':'.$arg;
+				$namespaced[$k]=$this->currentNamespace.':'.$arg;
 			}
 			else
 				//Argument already specifies a namespace
-				$namespaced[]=$arg;
+				$namespaced[$k]=$arg;
 		}
 		return $namespaced;
 	}

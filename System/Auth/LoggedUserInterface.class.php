@@ -16,12 +16,18 @@ namespace ZedBoot\System\Auth;
 interface LoggedUserInterface
 {
 	/**
+	 * In case of failure, returns user-friendly message.
+	 * @return mixed user friendly message from last failure, if any.
+	 */
+	public function getMessage();
+	/**
 	 * Should implicitly load data if not loaded
-	 * @return mixed null if no user logged in, otherwise Array('id'=><user id>,'name'=><user name>,'info'=><info>,'roles'=><roles>)
+	 * @return mixed null if no user logged in, otherwise Array('id'=><user id>,'name'=><user name>,'info'=><info>,'roles'=><roles>,'syncTime'=><sync time>)
 	 */
 	public function getUser();
 	/**
 	 * Sets user for the session
+	 * @return boolean true on success, false on failure
 	 */
 	public function setUser($id);
 	/**
