@@ -99,13 +99,14 @@ class NamespacedDependencyIndex implements \ZedBoot\System\DI\DependencyIndexInt
 				//Recurse into nested arguments
 				$namespaced[$k]=$this->namespaceArgs($arg);
 			}
-			else if(false===strpos($arg,':'))
+			else if(is_scalar($arg) && !is_numeric($arg) && !is_bool($arg) && !is_null($arg) && false===strpos($arg,':'))
 			{
+				//This is a dependency id
 				//No namespace specified - this is a local argument - apply current namespace
 				$namespaced[$k]=$this->currentNamespace.':'.$arg;
 			}
 			else
-				//Argument already specifies a namespace
+				//Argument already has a namespace, or isn't a dependency id
 				$namespaced[$k]=$arg;
 		}
 		return $namespaced;

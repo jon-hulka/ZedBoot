@@ -21,7 +21,7 @@ interface DependencyIndexInterface
 	public function addParameters(array $parameters);
 	/**
 	 * @param string $id unique identifier for the service, cannot conflict with existing service or parameter ids
-	 * @param mixed $arguments array of parameter and service ids to pass into constructor, null for none, nested arrays are allowed
+	 * @param mixed $arguments array of parameter and service ids to pass into constructor, null for none, nested arrays are allowed, boolean, null, and numeric treated as constants
 	 * @param boolean $singleton true to use a single instance, false for new instance every time
 	 */
 	public function addService($id,$className,array $arguments=null,$singleton=true);

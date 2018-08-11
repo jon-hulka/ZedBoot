@@ -124,11 +124,15 @@ class SimpleDependencyLoader implements \ZedBoot\System\DI\DependencyLoaderInter
 				//Recursively handle nested arrays
 				$v=$this->extractArguments($arg,$dependencyChain,true);
 			}
-			else
+			else if(is_null($arg) || is_numeric($arg)  || is_bool($arg))
 			{
-				if(!is_scalar($arg)) throw new Err('Encountered non-array, non-scalar argument specification.');
+				$v=$arg;
+			}
+			else if(is_scalar($arg))
+			{
 				$v=$this->loadDependency($arg,$dependencyChain);
 			}
+			else throw new Err('Loading '.implode(' > ',$dependencyChain).': Expected dependecy id (String), Array, NULL, or scalar constant (numeric, bool); got '.gettype($arg).'.');
 			if($preserveKeys)
 			{
 				$argValues[$k]=$v;
