@@ -7,12 +7,11 @@
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
  * @copyright   Copyright (c) 2016-2018 Jonathan Hulka
  * 
- * Decorates a url router with authentication support and https checking
- * if route data contains 'https' => array(...) and the request was sent by https, the subroute will be selected
+ * Decorates a url router with authentication support
  * if route data contains 'byRole' => array(<role>=>array(...), ...) and a user is logged in with one of the specified roles, the first appropriate subroute will be selected
  * To specify any logged in user, use '*' for the role key
- * 'https' and 'byRole' options can be nested.
- * if no subroute is selected, any unused 'https' or 'byRole' options will be stripped from the route data
+ * Subroute will be selected in the order specified
+ * if no subroute is selected, any unused 'byRole' options will be stripped from the route data
  */
 namespace ZedBoot\System\Bootstrap;
 use \ZedBoot\System\Error\ZBError as Err;
@@ -49,18 +48,7 @@ class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInter
 	{
 		$result=null;
 		$subroute=null;
-		if(array_key_exists('https',$routeData) && 
-			(
-				(!empty($_SERVER['HTTPS']) && 'off' != $_SERVER['HTTPS']) ||
-				(array_key_exists('SERVER_PORT', $_SERVER) && 443 === (int)$_SERVER['SERVER_PORT']) ||
-				(array_key_exists('HTTP_X_FORWARDED_SSL', $_SERVER) && 'on' === $_SERVER['HTTP_X_FORWARDED_SSL']) ||
-				(array_key_exists('HTTP_X_FORWARDED_PROTO', $_SERVER) && 'https' === $_SERVER['HTTP_X_FORWARDED_PROTO'])
-			))
-		{
-			$subroute=$routeData['https'];
-			if(!is_array($subroute)) throw new \Err('Expected array for \'https\' subroute.');
-		}
-		else if(array_key_exists('byRole',$routeData))
+		if(array_key_exists('byRole',$routeData))
 		{
 			$byRole=$routeData['byRole'];
 			if(!is_array($byRole)) throw new \Err('Expected array for \'byRole\' subroutes.');
@@ -73,7 +61,7 @@ class AuthenticatedURLRouter implements \ZedBoot\System\Bootstrap\URLRouterInter
 			unset($routeData['byRole']);
 			$result=$routeData;
 		}
-		else $result=$this->parseRouteData($subroute);
+		else $result=$subroute;
 		return $result;
 	}
 	

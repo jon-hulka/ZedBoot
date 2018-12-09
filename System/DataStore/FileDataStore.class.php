@@ -78,10 +78,10 @@ class FileDataStore implements \ZedBoot\System\DataStore\DataStoreInterface
 	{
 		if(!is_null($this->filePointer)) //no effect if not locked
 		{
-			if(!flock($this->filePointer,LOCK_UN)) throw new \Err('System error: unlock failed: '.$this->path);
-			if(!fclose($this->filePointer)) throw new \Exception('System error: close file failed: '.$this->path);
+			if(!flock($this->filePointer,LOCK_UN)) throw new Err('System error: unlock failed: '.$this->path);
+			if(!fclose($this->filePointer)) throw new Err('System error: close file failed: '.$this->path);
 			$this->filePointer=null;
-			if(!touch($this->path)) throw new \Exception('System error: touch failed: '.$this->path);
+			if(!touch($this->path)) throw new Err('System error: touch failed: '.$this->path);
 		}
 	}
 	public function quickRead()
