@@ -1,6 +1,6 @@
 <?php
 /**
- * Class AuthenticatedURLRouter | ZedBoot/System/Bootstrap/AuthenticatedURLRouter.class.php
+ * Class HTTPSURLRouter | ZedBoot/System/Bootstrap/HTTPSURLRouter.class.php
  * @license     GNU General Public License, version 3
  * @package     System
  * @subpackage  Bootstrap
