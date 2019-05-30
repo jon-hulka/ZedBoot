@@ -20,11 +20,12 @@ interface DataStoreInterface
 	function writeAndUnlock($data);
 	function lock();
 	/**
-	 * Should return error if data store has not been locked
-	 * @return mixed data
+	 * Should throw an exception if data store has not been locked
+	 * @return mixed data, null if no data has been written
 	 */
 	function read();
 	/**
+	 * Should throw an exception if data store has not been locked
 	 * @param mixed $data
 	 */
 	function write($data);
