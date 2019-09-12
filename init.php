@@ -1,76 +1,70 @@
 <?php
-/**
- * A Init Procedure
- *  1 prepares the classloader for the \ZedBoot namespace
- *  2 sets up the dependency loader
- *  3 adds common dependencies to the dependency loader
- *  4 uses the url router from common dependencies to load route data
- *  5 uses route data to identify the request handler dependency
- *  6 loads the request handler dependency (this might be defined in a different configuration script, and loaded via dependency namespace (see C.3)
- *  7 runs handleRequest and writeResponse on the request handler
- * B Dependencies
- *   At a minimum, these dependencies are available when the request handler is created:
- *  1 common:system.classLoader: \ZedBoot\System\Bootstrap\AutoLoader (ZedBoot namespace already configured)
- *    - Also available to dependency config scripts as $classLoader
- *  2 common:system.basePath String path of directory containing ZedBoot and config directories
- *    - Also available to dependency config scripts as $basePath
- *  3 common:system.routeData as returned by system.urlRouter (C.2)
- *    - Also available to dependency config scripts (after URL routing) as $routeData
- *  4 common:system.baseURL as returned by system.urlRouter (C.2)
- *    - Also available to dependency config scripts (after URL routing) as $baseURL
- *  5 common:system.urlParts as returned by system.urlRouter (C.2)
- *    - Also available to dependency config scripts (after URL routing) as $urlParts
- *  6 common:system.urlParameters as returned by system.urlRouter (C.2)
- *    - Also available to dependency config scripts (after URL routing) as $urlParameters
- * C Dependencies Configuration
- *   In order for a successful page load, the common dependencies configuration script must be set up:
- *  1 located at <base path>/ZedBoot/App/DI/common.php
- *  2 system.urlRouter (\ZedBoot\System\Bootstrap\URLRouterInterface) must be defined in this config file
- *  3 each route data array must contain a 'response' element indicating the id of the response dependency
- * 		  - this element can (and should) be loaded via dependency namespace
- *          (ie an id of 'pages/test:response' will cause pages/test.php to be loaded into the dependency index before the dependency is resolved)
+/* There should be dependency configuration file named 'boot.php' in the path specified by $settingsDir
+ * It is expected to have the following:
+ * in $parameters:
+ *   'classRegistry' => array(
+ *      array(
+ *        'path'=> <string, required>, 
+ *        'namespace' => <string, required>,
+ *        `suffix' => <string (filename suffix), optonal, defaults to '.class.php'>,
+ *        'prefix' => <string (filename prefix), optonal, defaults to ''>
+ *      ),
+ *      ... etc
+ *    ),
+ * in $services:
+ *   - service definition for urlRouter, implementing \ZedBoot\System\Bootstrap\URLRouterInterface
+ *     route data returned by the url router must contain a 'response' element containing the
+ *     dependency key for an instance of \\ZedBoot\\System\\Bootstrap\\ResponseInterface
+ *     this is where request processing starts
+ * 
+ * every dependency configuration file except 'boot.php' will have access to the following,
+ * available as variables and by dependency key:
+ *   - $routeData ('request:routeData'): as returned by urlRouter->getRouteData()
+ *   - $baseURL ('request:baseURL'): as returned by urlRouter->getBaseURL()
+ *   - $urlParts ('request:urlParts'): as returned by urlRouter->getURLParts()
+ *   - $urlParameters ('request:urlParameters'): as returned by urlRouter->getURLParameters()
  */
 use \ZedBoot\System\Error\ZBError as Err;
-function zbInit()
+/**
+ * @param $settingsDir String This is where dependency configuration files are found
+ * @param $zbClassPath String ZedBoot root path of ZedBoot namespace
+ */
+function zbInit($settingsDir,$zbClassPath)
 {
 	$ok=true;
-	$baseURL=null;
-	$urlParts=null;
-	$urlParameters=null;
-	$basePath=dirname(dirname(__FILE__));
-	$dependenciesConfigPath=$basePath.'/ZedBoot/App/DI';
-	$dependenciesConfigFile=$dependenciesConfigPath.'/common.php';
-	$router=null;
-	$routeData=null;
-	$response=null;
-	$output=null;
-	$configLoaderParameters=array();
-	$obStarted=false;
 	try
 	{
+		//autoloader and dependency loader are hardwired here because they are neccessary to get everything else up and running
 		//Set up the ZedBoot namespace
-		require_once $basePath.'/ZedBoot/System/Bootstrap/AutoLoader.class.php';
+		$zbClassPath=rtrim($zbClassPath,'/');
+		require_once $zbClassPath.'/System/Bootstrap/AutoLoader.class.php';
 		$loader=new \ZedBoot\System\Bootstrap\Autoloader();
-		$loader->register('ZedBoot',$basePath.'/ZedBoot');
+		$loader->register('ZedBoot',$zbClassPath.'/ZedBoot');
 
-		//Set up shared dependencies
+		//Set up the dependency loader
 		$configLoader=new \ZedBoot\System\DI\DependencyConfigLoader();
-		$dependencyIndex=new \ZedBoot\System\DI\NamespacedDependencyIndex($configLoader, new \ZedBoot\System\DI\SimpleDependencyIndex(),$dependenciesConfigPath);
+		//$dependencyIndex finds and loads namespaced dependency configuration files as needed by $dependencyLoader
+		$dependencyIndex=new \ZedBoot\System\DI\NamespacedDependencyIndex($configLoader, new \ZedBoot\System\DI\SimpleDependencyIndex(),$settingsDir);
 		$dependencyLoader=new \ZedBoot\System\DI\SimpleDependencyLoader($dependencyIndex);
-		$configLoaderParameters['basePath']=$basePath;
-		$configLoaderParameters['classLoader']=$loader;
 		
-		$dependencyIndex->addParameters(array(
-			'common:system.basePath'=>$basePath,
-			'common:system.classLoader'=>$loader,
-		));
-
-		$configLoader->setConfigParameters($configLoaderParameters);
-		//$configLoader->loadConfig is never explicitly called here
-		//This allows all dependencies to be properly handled by NamespacedDependencyIndex
-	
+		$classRegistry=$dependencyLoader->getDependency('boot:classRegistry');
+		$i=0;
+		if(!is_array($classRegistry)) throw new Err('Invalid dependency parameter boot:classRegistry, expected array.');
+		foreach($classRegistry as $k=>$item)
+		{
+			$i++;
+			if(!is_array($item)) throw new Err('Invalid parameter: boot:classRegistry['.$k.'], all entries are expected to be arrays.');
+			if(!array_key_exists('path',$item)) throw new Err('boot:classRegistry['.$k.'] missing path.');
+			if(!array_key_exists('namespace',$item)) throw new Err('boot:classRegistry['.$k.'] missing namespace.');
+			$loader->register(
+				$item['namespace'],
+				$item['path'],
+				array_key_exists('suffix',$item)?$item['suffix']:'.class.php',
+				array_key_exists('prefix',$item)?$item['prefix']:'');
+		}
+		
 		//Get url router
-		$router=$dependencyLoader->getDependency('common:system.urlRouter','\\ZedBoot\\System\\Bootstrap\\URLRouterInterface');
+		$router=$dependencyLoader->getDependency('boot:urlRouter','\\ZedBoot\\System\\Bootstrap\\URLRouterInterface');
 
 		//Resolve the route
 		$url=explode('?',$_SERVER['REQUEST_URI'],2);
@@ -88,10 +82,10 @@ function zbInit()
 		$configLoaderParameters['urlParts']=$urlParts;
 		$configLoaderParameters['urlParameters']=$urlParameters;
 		$dependencyIndex->addParameters(array(
-			'common:system.routeData'=>$routeData,
-			'common:system.baseURL'=>$baseURL,
-			'common:system.urlParts'=>$urlParts,
-			'common:system.urlParameters'=>$urlParameters,
+			'request:routeData'=>$routeData,
+			'request:baseURL'=>$baseURL,
+			'request:urlParts'=>$urlParts,
+			'request:urlParameters'=>$urlParameters,
 		));
 		$configLoader->setConfigParameters($configLoaderParameters);
 
@@ -108,19 +102,20 @@ function zbInit()
 		{
 			//Bad headers will be handled before any are sent. If any are bad, none will be sent
 			if(!is_array($header)) throw new Err('Invalid header in list returned by '.get_class($response).'::getHeaders(): expected array, got '.getType($header).'.');
-			if(count($header)<1) throw new Err('invalid header in list returned by '.get_class($response).'::getHeaders(): Each header must have at least one parameter.');
+			if(count($header)<1) throw new Err('invalid header in list returned by '.get_class($response).'::getHeaders(): Each header array must have at least one element.');
 		}
 		foreach($headers as $header)
 		{
 			$h=array_shift($header);
-			$r=true;
-			$c=null;
-			if(count($header)>0)$r=array_shift($header);
-			if(count($header)>0)$c=array_shift($header);
-			if($c===null){ header($h,$r); } else header($h,$r,$c);
+			$replace=true;
+			$responseCode=null;
+			if(count($header)>0)$replace=array_shift($header);
+			if(count($header)>0)$responseCode=array_shift($header);
+			if($responseCode===null){ header($h,$replace); } else header($h,$replace,$responseCode);
 		}
 		ob_end_clean(); $obStarted=false;
 		echo $output;
+		
 	}
 	catch(\Exception $e)
 	{
@@ -130,4 +125,3 @@ function zbInit()
 		echo '<h1>Server error.</h1>';
 	}
 }
-zbInit();
