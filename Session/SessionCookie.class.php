@@ -36,6 +36,11 @@ class SessionCookie implements \ZedBoot\Session\CookieInterface
 		$this->session=$session;
 	}
 	
+	public function setClientId($id)
+	{
+		$_COOKIE[$this->name]=$id;
+	}
+	
 	public function getId($create=true,$regenerate=false)
 	{
 		//Ensure that this won't happen on a non-secure connection
