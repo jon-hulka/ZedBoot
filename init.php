@@ -2,15 +2,20 @@
 /* There should be dependency configuration file named 'boot.php' in the path specified by $settingsDir
  * It is expected to have the following:
  * in $parameters:
- *   'classRegistry' => array(
- *      array(
+ *   'classRegistry' =>
+ *   [
+ *      [
  *        'path'=> <string, required>, 
  *        'namespace' => <string, required>,
  *        `suffix' => <string (filename suffix), optonal, defaults to '.class.php'>,
  *        'prefix' => <string (filename prefix), optonal, defaults to ''>
- *      ),
- *      ... etc
- *    ),
+ *      ],
+ *      ...
+ *  ],
+ *  'sharedParameters => 
+ *  [
+ *    //Anything to be shared with other config files (more information below)   
+ *  ]
  * in $services:
  *   - service definition for urlRouter, implementing \ZedBoot\System\Bootstrap\URLRouterInterface
  *     route data returned by the url router must contain a 'response' element containing the
@@ -23,6 +28,27 @@
  *   - $baseURL ('request:baseURL'): as returned by urlRouter->getBaseURL()
  *   - $urlParts ('request:urlParts'): as returned by urlRouter->getURLParts()
  *   - $urlParameters ('request:urlParameters'): as returned by urlRouter->getURLParameters()
+ * 
+ * Configuration files will also have access to any shared parameters defined in boot.php $parameters[sharedParameters]
+ * These will be available as variables. For example - if boot.php has these parameters:
+ * $parameters=
+ * [
+ * ...
+ *     'foo'=>'bar',
+ *     'baz'=>'zzz',
+ * ...
+ * ]
+ * Other configuration files will have access to $foo (='bar') and $baz(='zzz')
+ * Please note for shared parameters that some key names are reserved and will cause an exception or be overwritten:
+ *  - parameters
+ *  - services
+ *  - factoryServices
+ *  - __path
+ *  - routeData
+ *  - baseURL
+ *  - urlParts
+ *  - urlParameters
+ * 
  */
 use \ZedBoot\System\Error\ZBError as Err;
 /**
@@ -32,6 +58,7 @@ use \ZedBoot\System\Error\ZBError as Err;
 function zbInit($settingsDir,$zbClassPath)
 {
 	$ok=true;
+	$obStarted=false;
 	try
 	{
 		//autoloader and dependency loader are hardwired here because they are neccessary to get everything else up and running
@@ -65,7 +92,7 @@ function zbInit($settingsDir,$zbClassPath)
 		
 		//Get url router
 		$router=$dependencyLoader->getDependency('boot:urlRouter','\\ZedBoot\\System\\Bootstrap\\URLRouterInterface');
-
+		$configLoaderParameters=$dependencyLoader->getDependency('boot:sharedParameters','Array');
 		//Resolve the route
 		$url=explode('?',$_SERVER['REQUEST_URI'],2);
 		$router->parseURL($url[0]);
@@ -81,12 +108,12 @@ function zbInit($settingsDir,$zbClassPath)
 		$configLoaderParameters['baseURL']=$baseURL;
 		$configLoaderParameters['urlParts']=$urlParts;
 		$configLoaderParameters['urlParameters']=$urlParameters;
-		$dependencyIndex->addParameters(array(
+		$dependencyIndex->addParameters([
 			'request:routeData'=>$routeData,
 			'request:baseURL'=>$baseURL,
 			'request:urlParts'=>$urlParts,
 			'request:urlParameters'=>$urlParameters,
-		));
+		]);
 		$configLoader->setConfigParameters($configLoaderParameters);
 
 		//Get the request handler
