@@ -20,9 +20,9 @@
  *     ...
  * ];
  * $services:
- *   - service definition for urlRouter, implementing \ZedBoot\System\Bootstrap\URLRouterInterface
+ *   - service definition for urlRouter, implementing \ZedBoot\Bootstrap\URLRouterInterface
  *     route data returned by the url router must contain a 'response' element containing the
- *     dependency key for an instance of \\ZedBoot\\System\\Bootstrap\\ResponseInterface
+ *     dependency key for an instance of \ZedBoot\Bootstrap\ResponseInterface
  *     This is where request processing starts.
  * 
  * every dependency configuration script except the boot config script will have access to the following,
@@ -52,7 +52,7 @@
  *  - urlParts
  *  - urlParameters
  */
-use \ZedBoot\System\Error\ZBError as Err;
+use \ZedBoot\Error\ZBError as Err;
 /**
  * @param $configDir String This is where dependency configuration files are found
  * @param $bootConfigKey dependency key for boot configuration. This correlates to a .php file located within the configuration directory.
@@ -67,15 +67,15 @@ function zbInit($configDir,$bootConfigKey,$zbClassPath)
 		//autoloader and dependency loader are hardwired here because they are neccessary to get everything else up and running
 		//Set up the ZedBoot namespace
 		$zbClassPath=rtrim($zbClassPath,'/');
-		require_once $zbClassPath.'/System/Bootstrap/AutoLoader.class.php';
-		$loader=new \ZedBoot\System\Bootstrap\Autoloader();
+		require_once $zbClassPath.'/Bootstrap/AutoLoader.class.php';
+		$loader=new \ZedBoot\Bootstrap\Autoloader();
 		$loader->register('ZedBoot',$zbClassPath);
 
 		//Set up the dependency loader
-		$configLoader=new \ZedBoot\System\DI\DependencyConfigLoader();
+		$configLoader=new \ZedBoot\DI\DependencyConfigLoader();
 		//$dependencyIndex finds and loads namespaced dependency configuration files as needed by $dependencyLoader
-		$dependencyIndex=new \ZedBoot\System\DI\NamespacedDependencyIndex($configLoader, new \ZedBoot\System\DI\SimpleDependencyIndex(),$configDir);
-		$dependencyLoader=new \ZedBoot\System\DI\SimpleDependencyLoader($dependencyIndex);
+		$dependencyIndex=new \ZedBoot\DI\NamespacedDependencyIndex($configLoader, new \ZedBoot\DI\SimpleDependencyIndex(),$configDir);
+		$dependencyLoader=new \ZedBoot\DI\SimpleDependencyLoader($dependencyIndex);
 		
 		$classRegistry=$dependencyLoader->getDependency($bootConfigKey.':classRegistry','Array');
 		$i=0;
@@ -93,7 +93,7 @@ function zbInit($configDir,$bootConfigKey,$zbClassPath)
 		}
 		
 		//Get url router
-		$router=$dependencyLoader->getDependency($bootConfigKey.':urlRouter','\\ZedBoot\\System\\Bootstrap\\URLRouterInterface');
+		$router=$dependencyLoader->getDependency($bootConfigKey.':urlRouter','\\ZedBoot\\Bootstrap\\URLRouterInterface');
 		$configLoaderParameters=$dependencyLoader->getDependency($bootConfigKey.':sharedParameters','Array');
 		//Resolve the route
 		$url=explode('?',$_SERVER['REQUEST_URI'],2);
@@ -119,7 +119,7 @@ function zbInit($configDir,$bootConfigKey,$zbClassPath)
 		$configLoader->setConfigParameters($configLoaderParameters);
 
 		//Get the request handler
-		$response=$dependencyLoader->getDependency($routeData['response'],'\\ZedBoot\\System\\Bootstrap\\ResponseInterface');
+		$response=$dependencyLoader->getDependency($routeData['response'],'\\ZedBoot\\Bootstrap\\ResponseInterface');
 		
 		//Handle the request
 		ob_start(); $obStarted=true; //$response shouldn't write anything to output - if it does, ignore.
