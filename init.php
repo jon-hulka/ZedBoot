@@ -94,7 +94,7 @@ function zbInit($configDir,$bootConfigKey,$zbClassPath)
 		
 		//Get url router
 		$router=$dependencyLoader->getDependency($bootConfigKey.':urlRouter','\\ZedBoot\\Bootstrap\\URLRouterInterface');
-		$configLoaderParameters=$dependencyLoader->getDependency($bootConfigKey.':sharedParameters','Array');
+		$configLoaderParameters=$dependencyLoader->getDependency($bootConfigKey.':sharedParameters','array');
 		//Resolve the route
 		$url=explode('?',$_SERVER['REQUEST_URI'],2);
 		$router->parseURL($url[0]);
