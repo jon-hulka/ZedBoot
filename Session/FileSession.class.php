@@ -49,7 +49,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 	}
 	protected function checkExpiry($expiry)
 	{
-		if(!is_int($expiry) || ($expiry<30 && $expiry!==0)) throw new Err('Invalid expiry: '.json_encode($expiry).', must be 0 or at least 30 seconds.');
+		if(!is_numeric($expiry) || ($expiry<30 && $expiry!==0)) throw new Err('Invalid expiry: '.json_encode($expiry).', must be 0 or at least 30 seconds.');
 	}
 	public function getDataStore($key,$expiry=null,$forceCreate=true)
 	{
