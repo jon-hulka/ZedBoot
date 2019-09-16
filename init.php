@@ -1,36 +1,39 @@
 <?php
-/* There should be dependency configuration file named 'boot.php' in the path specified by $settingsDir
+/* There should be dependency configuration file located at $configDir.'/'.$bootConfigKey.'.php'
  * It is expected to have the following:
- * in $parameters:
- *   'classRegistry' =>
- *   [
- *      [
- *        'path'=> <string, required>, 
- *        'namespace' => <string, required>,
- *        `suffix' => <string (filename suffix), optonal, defaults to '.class.php'>,
- *        'prefix' => <string (filename prefix), optonal, defaults to ''>
- *      ],
- *      ...
- *  ],
- *  'sharedParameters => 
- *  [
- *    //Anything to be shared with other config files (more information below)   
- *  ]
- * in $services:
+ * $parameters
+ * [
+ *     'classRegistry' =>
+ *     [
+ *         [
+ *             'path'=> <string, required>, 
+ *             'namespace' => <string, required>,
+ *             `suffix' => <string (filename suffix), optonal, defaults to '.class.php'>,
+ *             'prefix' => <string (filename prefix), optonal, defaults to ''>
+ *         ],
+ *        ...
+ *     ],
+ *     'sharedParameters => 
+ *     [
+ *         //Anything to be shared with other config files (more information below)   
+ *     ],
+ *     ...
+ * ];
+ * $services:
  *   - service definition for urlRouter, implementing \ZedBoot\System\Bootstrap\URLRouterInterface
  *     route data returned by the url router must contain a 'response' element containing the
  *     dependency key for an instance of \\ZedBoot\\System\\Bootstrap\\ResponseInterface
- *     this is where request processing starts
+ *     This is where request processing starts.
  * 
- * every dependency configuration file except 'boot.php' will have access to the following,
+ * every dependency configuration script except the boot config script will have access to the following,
  * available as variables and by dependency key:
  *   - $routeData ('request:routeData'): as returned by urlRouter->getRouteData()
  *   - $baseURL ('request:baseURL'): as returned by urlRouter->getBaseURL()
  *   - $urlParts ('request:urlParts'): as returned by urlRouter->getURLParts()
  *   - $urlParameters ('request:urlParameters'): as returned by urlRouter->getURLParameters()
  * 
- * Configuration files will also have access to any shared parameters defined in boot.php $parameters[sharedParameters]
- * These will be available as variables. For example - if boot.php has these parameters:
+ * Configuration files will also have access to any shared parameters defined in the boot config script $parameters['sharedParameters']
+ * These will be available as variables. For example - if the boot config script has these parameters:
  * $parameters=
  * [
  * ...
@@ -38,7 +41,7 @@
  *     'baz'=>'zzz',
  * ...
  * ]
- * Other configuration files will have access to $foo (='bar') and $baz(='zzz')
+ * Other configuration files will have access to $foo (='bar') and $baz (='zzz')
  * Please note for shared parameters that some key names are reserved and will cause an exception or be overwritten:
  *  - parameters
  *  - services
@@ -48,14 +51,14 @@
  *  - baseURL
  *  - urlParts
  *  - urlParameters
- * 
  */
 use \ZedBoot\System\Error\ZBError as Err;
 /**
- * @param $settingsDir String This is where dependency configuration files are found
+ * @param $configDir String This is where dependency configuration files are found
+ * @param $bootConfigKey dependency key for boot configuration. This correlates to a .php file located within the configuration directory.
  * @param $zbClassPath String ZedBoot root path of ZedBoot namespace
  */
-function zbInit($settingsDir,$zbClassPath)
+function zbInit($configDir,$bootConfigKey,$zbClassPath)
 {
 	$ok=true;
 	$obStarted=false;
@@ -66,23 +69,22 @@ function zbInit($settingsDir,$zbClassPath)
 		$zbClassPath=rtrim($zbClassPath,'/');
 		require_once $zbClassPath.'/System/Bootstrap/AutoLoader.class.php';
 		$loader=new \ZedBoot\System\Bootstrap\Autoloader();
-		$loader->register('ZedBoot',$zbClassPath.'/ZedBoot');
+		$loader->register('ZedBoot',$zbClassPath);
 
 		//Set up the dependency loader
 		$configLoader=new \ZedBoot\System\DI\DependencyConfigLoader();
 		//$dependencyIndex finds and loads namespaced dependency configuration files as needed by $dependencyLoader
-		$dependencyIndex=new \ZedBoot\System\DI\NamespacedDependencyIndex($configLoader, new \ZedBoot\System\DI\SimpleDependencyIndex(),$settingsDir);
+		$dependencyIndex=new \ZedBoot\System\DI\NamespacedDependencyIndex($configLoader, new \ZedBoot\System\DI\SimpleDependencyIndex(),$configDir);
 		$dependencyLoader=new \ZedBoot\System\DI\SimpleDependencyLoader($dependencyIndex);
 		
-		$classRegistry=$dependencyLoader->getDependency('boot:classRegistry');
+		$classRegistry=$dependencyLoader->getDependency($bootConfigKey.':classRegistry','Array');
 		$i=0;
-		if(!is_array($classRegistry)) throw new Err('Invalid dependency parameter boot:classRegistry, expected array.');
 		foreach($classRegistry as $k=>$item)
 		{
 			$i++;
-			if(!is_array($item)) throw new Err('Invalid parameter: boot:classRegistry['.$k.'], all entries are expected to be arrays.');
-			if(!array_key_exists('path',$item)) throw new Err('boot:classRegistry['.$k.'] missing path.');
-			if(!array_key_exists('namespace',$item)) throw new Err('boot:classRegistry['.$k.'] missing namespace.');
+			if(!is_array($item)) throw new Err('Invalid parameter: '.$bootConfigKey.':classRegistry['.$k.'], all entries are expected to be arrays.');
+			if(!array_key_exists('path',$item)) throw new Err($bootConfigKey.':classRegistry['.$k.'] missing path.');
+			if(!array_key_exists('namespace',$item)) throw new Err($bootConfigKey.':classRegistry['.$k.'] missing namespace.');
 			$loader->register(
 				$item['namespace'],
 				$item['path'],
@@ -91,8 +93,8 @@ function zbInit($settingsDir,$zbClassPath)
 		}
 		
 		//Get url router
-		$router=$dependencyLoader->getDependency('boot:urlRouter','\\ZedBoot\\System\\Bootstrap\\URLRouterInterface');
-		$configLoaderParameters=$dependencyLoader->getDependency('boot:sharedParameters','Array');
+		$router=$dependencyLoader->getDependency($bootConfigKey.':urlRouter','\\ZedBoot\\System\\Bootstrap\\URLRouterInterface');
+		$configLoaderParameters=$dependencyLoader->getDependency($bootConfigKey.':sharedParameters','Array');
 		//Resolve the route
 		$url=explode('?',$_SERVER['REQUEST_URI'],2);
 		$router->parseURL($url[0]);
