@@ -123,7 +123,6 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$this->dataPath=$this->savePath.'/'.$this->sessionId.'.data';
 		//In order to safely lock meta datastores and ensure no race condtitions with gc, everything synchronizes on this file
 		if(false===($this->safeLockFP=fopen($this->savePath.'/.lock','c+',0600))) throw new Err('Unable to open/create file '.$this->savePath.'/.lock');
-		$this->prepSessionId();
 		//Creation and deletion of data and subfolders happens while this file is locked
 		$this->metaStore=new \ZedBoot\DataStore\FileDataStore($this->savePath.'/'.$this->sessionId.'.meta');
 //Begin critical section
