@@ -25,7 +25,8 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$sessionId=null,
 		$savePath=null,
 		$dataPath=null,
-		$metaPath=null,
+		$metaStore=null,
+		$safeLockFP=null,
 		$started=false,
 		$gcChance=null;
 	/**
@@ -34,14 +35,14 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 	 * @param $sessionId String unique to session. Each session will be indexed and garbage collected separately.
 	 * @param $expiry int expiry (seconds - default 28800) for:
 	 *   - datastore creation (default - can be specified in getDataStore() parameters) - datastores older than this will be reset
-	 *   - and garbage collection - datastores could be cleaned up after max($expiry,3600) seconds
+	 *   - and garbage collection - inactive datastores or sessions will be cleaned up some time after $expiry seconds
 	 * @param $gcChance int garbage collection probability (calculated as 1 in $gcChance - default 500), if 0, garbage collection will not run
 	 */
 	public function __construct($savePath, $sessionId, $expiry=null, $gcChance=null)
 	{
 		$this->savePath=$savePath;
 		$this->sessionId=$sessionId;
-		$this->expiry=($expiry===null)?static::$defaultExpiry:$expiry;
+		$this->expiry=(is_numeric($expiry))?$expiry:static::$defaultExpiry;
 		$this->gcChance=($gcChance===null)?static::$defaultGCChance:$gcChance;
 		$this->checkExpiry($this->expiry);
 		if(!is_int($this->gcChance) || $this->gcChance<0) throw new Err('Parameter $gcChance must be an integer >= 0.');
@@ -57,10 +58,50 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$keyPath=null;
 		if(empty($this->sessionId)) throw new Err('Session id not set');
 		if(!$this->started) $this->start();
-		if(is_null($expiry)) $expiry=$this->expiry;
-		$this->checkExpiry($expiry);
+		if(is_null($expiry))
+		{
+			$expiry=$this->expiry;
+		}
+		else $this->checkExpiry($expiry);
+		if($expiry>$this->expiry) throw new Err('Invalid expiry: '.json_encode($expiry).', must not be greater than session expiry of '.$this->expiry.'.');
 		$keyPath=$this->processKey($key);
 		$result=$this->getExpirableDataStore($keyPath,$expiry,$forceCreate);
+		return $result;
+	}
+	public function clearAll($keyRoot='')
+	{
+		$metaData=null;
+		$time=time();
+		if(!$this->started) $this->start();
+//Begin critical section
+		$this->safeLock($this->metaStore);
+		$metaData=$this->metaStore->read();
+		if(!is_array($metaData)) $metaData=[];
+		if($keyRoot=='')
+		{
+			if(is_dir($this->dataPath)) $this->rmdirRecursive($this->dataPath);
+			$metaData['exp_by_key']=[];
+		}
+		else
+		{
+			$keyPath=$this->processKey($keyRoot);
+			if(array_key_exists('exp_by_key',$metaData))
+			{
+				$metaData['exp_by_key']=$this->clearMetaSubPaths($metaData['exp_by_key'],$keyPath);
+			}
+			if(is_dir($keyPath)) $this->rmdirRecursive($keyPath);
+		}
+//End critical section
+		$this->metaStore->writeAndUnlock($metaData);
+	}
+	protected function clearMetaSubPaths($expByKey,$keyPath)
+	{
+		$result=[];
+		$pathLen=strlen($keyPath);
+		foreach($expByKey as $subPath=>$exp)
+		{
+			if(substr($subpath,0,$pathLen)!==$keyPath) $result[$subPath]=$exp;
+		}
 		return $result;
 	}
 	protected function processKey($key)
@@ -75,33 +116,30 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 	protected function start()
 	{
 		$fp=null;
-		$metaStore=null;
 		$metaData=null;
-		$mtime=null;
-		$time=time();		
-		$this->prepSessionId();
-		$metaStore=new \ZedBoot\DataStore\FileDataStore($this->metaPath);
-//Begin critical section
-		$metaStore->lock();
-		if(false===($mtime=filemtime($this->metaPath))) throw new Err('Unable to get mtime for '.$this->metaPath);
-		$metaData=$metaStore->read();
-		if(!is_array($metaData)) $metaData=array();
-		$this->clearExpiredKeys($metaData,$time);
-		if(!(is_dir($this->dataPath) || mkdir($this->dataPath,0700))) throw new Err('Unable to create data folder: '.$this->dataPath);
-		$metaStore->writeAndUnlock($metaData);
-//End critical section
-		if($this->expiry>0 && $this->gcChance>0 && rand(0,$this->gcChance-1)==floor($this->gcChance/2)) $this->gc(max($this->expiry,3600));
-	}
-	protected function prepSessionId()
-	{
+		$time=time();
+		if(!is_dir($this->savePath) && !mkdir($this->savePath,0700,true)) throw new Err('Unable to create directory '.$this->savePath);
 		if(!ctype_alnum($this->sessionId)) throw new Err('Session id must be alphanumeric.');
 		$this->dataPath=$this->savePath.'/'.$this->sessionId.'.data';
+		//In order to safely lock meta datastores and ensure no race condtitions with gc, everything synchronizes on this file
+		if(false===($this->safeLockFP=fopen($this->savePath.'/.lock','c+',0600))) throw new Err('Unable to open/create file '.$this->savePath.'/.lock');
+		$this->prepSessionId();
 		//Creation and deletion of data and subfolders happens while this file is locked
-		$this->metaPath=$this->savePath.'/'.$this->sessionId.'.meta';
-	}	
+		$this->metaStore=new \ZedBoot\DataStore\FileDataStore($this->savePath.'/'.$this->sessionId.'.meta');
+//Begin critical section
+		$this->safeLock($this->metaStore);
+		$metaData=$this->metaStore->read();
+		if(!is_array($metaData)) $metaData=[];
+		$this->clearExpiredKeys($metaData,$time);
+		if(!(is_dir($this->dataPath) || mkdir($this->dataPath,0700))) throw new Err('Unable to create data folder: '.$this->dataPath);
+		$this->metaStore->writeAndUnlock($metaData);
+//End critical section
+		if($this->expiry>0 && $this->gcChance>0 && rand(0,$this->gcChance-1)==floor($this->gcChance/2)) $this->gc();
+		$this->started=true;
+	}
 	protected function clearExpiredKeys(&$metaData,$time)
 	{
-		if(empty($metaData['exp_by_key'])) $metaData['exp_by_key']=array();
+		if(empty($metaData['exp_by_key'])) $metaData['exp_by_key']=[];
 		$expByKey=$metaData['exp_by_key'];
 		$c=count($expByKey);
 		//Clean up expired items
@@ -127,7 +165,6 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 	protected function getExpirableDataStore($subPath,$expiry,$forceCreate)
 	{
 		$subPath='/'.$subPath; //Numerical indices mess up clearExpiredKeys(), so make sure all indices are non-numerical
-		$metaStore=null;
 		$metaData=null;
 		$locked=true;
 		$result=false;
@@ -143,11 +180,11 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		//It is possible for the .meta file to be deleted during this process,
 		//but it should have been renewed by start(),
 		//so if the script has lasted long enough for it to expire there is a bigger problem
-		$metaStore=new \ZedBoot\DataStore\FileDataStore($this->metaPath);
 //Begin critical section
-		$metaData=$metaStore->lockAndRead();
-		if(!is_array($metaData)) $metaData=array();
-		if(!array_key_exists('exp_by_key',$metaData)) $metaData['exp_by_key']=array();
+		$this->safeLock($this->metaStore);
+		$metaData=$this->metaStore->read();
+		if(!is_array($metaData)) $metaData=[];
+		if(!array_key_exists('exp_by_key',$metaData)) $metaData['exp_by_key']=[];
 		$expByKey=$metaData['exp_by_key'];
 		if(array_key_exists($subPath,$expByKey))
 		{
@@ -169,50 +206,49 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 			//Update expiry time, 0 for no expiry
 			$expByKey[$subPath]=($expiry===0?0:$time+$expiry);
 			$metaData['exp_by_key']=$expByKey;
-			$metaStore->write($metaData);
+			$this->metaStore->write($metaData);
 			$result=new \ZedBoot\DataStore\FileDataStore($this->dataPath.$subPath);
 		}
 		else $result=null; //$forceCreate==false and datastore is nonexistent or expired
-		$metaStore->unlock();
+		$this->metaStore->unlock();
 //End critical section
 		return $result;
 	}
 	/**
 	 * Run garbage collection
 	 * Will be handled automatically if $gcChance parameter to constructor is non-zero
-	 * @param $lifetime int (optional) default is 8 hours (28800 seconds)
 	 */
-	protected function gc($lifetime=null)
+	protected function gc()
 	{
 		$mt=null;
-		$time=null;
-		$files=null;
-		$toCheck=array();
-		if(empty($lifetime)) $lifetime=static::$defaultExpiry;
-		if(!is_numeric($lifetime) || $lifetime<3600) throw new Err('Invalid lifetime, must be at least 3600 seconds');
 		$time=time();
+		$toCheck=[];
+		//All sessions are marked with a .meta file
 		if(false===($files=glob($this->savePath.'/*.meta'))) throw new Err('Unable to search session directory: glob('.$this->savePath.'/*.meta) failed.');
 		foreach($files as $file)
 		{
+			//This is just a quick check to speed things up. A more comprehensive lock and check is made in gcProcessSession()
 			if(false===($mt=filemtime($file))) throw new Err('Unable to get modified time for meta file: filemtime('.$this->dataPath.'/'.$file.') failed');
-			if($time-$mt>$lifetime) $toCheck[]=basename($file,'.meta');
+			if($time-$mt>$this->expiry) $toCheck[]=basename($file,'.meta');
 		}
-		foreach($toCheck as $name) $this->gcProcessSession($this->savePath.'/'.$name.'.meta',$this->savePath.'/'.$name.'.data',$time,$lifetime);
+		foreach($toCheck as $name)
+		{
+			$this->gcProcessSession($this->savePath.'/'.$name.'.meta',$this->savePath.'/'.$name.'.data',$time);
+		}
 	}
-	protected function gcProcessSession($metaPath,$dataPath,$time,$lifetime)
+	protected function gcProcessSession($metaPath,$dataPath,$time)
 	{
-		$metaStore=null;
 		$mtime=null;
 		$remove=false;
-		$metaStore=new \ZedBoot\DataStore\FileDataStore($this->metaPath);
+		$ds=new \ZedBoot\DataStore\FileDataStore($metaPath);
 //Begin critical section
-		$metaStore->lock();
+		$this->safeLock($ds);
 		//check modified time again in case something happened in the meantime
 		if(false===($mtime=filemtime($metaPath))) throw new Err('Unable to get mtime for '.$metaPath);
-		$remove=$time-$mtime>$lifetime;
+		$remove=$time-$mtime>$this->expiry;
 		//if file hasn't been modified, recursively remove .data directory
 		if($remove && is_dir($dataPath)) $this->rmdirRecursive($dataPath);
-		$metaStore->unlock();
+		$ds->unlock();
 //End critical section
 		if($remove && !unlink($metaPath)) throw new Err('Unable to remove meta file '.$metaPath);
 	}
@@ -222,7 +258,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$subs=null;
 		if(empty($path) || !is_dir($path)) throw new Err('Attempt to remove non-existent directory '.$path);
 		if(substr($path,0,strlen($this->savePath))!==$this->savePath) throw new Err('Attempt to remove directory not within the save path: '.$path.' (save path is '.$this->savePath.').');
-		if(false===($subs=glob($path.'/{,.}[!.,!..]*', GLOB_BRACE))) throw new Err('System error: Unable to get directory contents for '.$path);
+		if(false===($subs=glob($path.'/{,.}[!.,!..]*', GLOB_BRACE))) throw new Err('Unable to get directory contents for '.$path);
 		//Excluding . and .. is redundant, but a good idea for safety
 		foreach($subs as $sub) if($sub!='.' && $sub!='..')
 		{
@@ -230,8 +266,18 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 			{
 				$this->rmr($sub);
 			}
-			else if(is_file($sub) && !unlink($sub)) throw new Err('System error: Unable to delete file '.$sub);
+			else if(is_file($sub) && !unlink($sub)) throw new Err('Unable to delete file '.$sub);
 		}
 		if(!rmdir($path)) throw new Err('Unable to delete directory '.$path);
+	}
+	
+	/**
+	 * Ensures that a datastore's file is not deleted between create and lock.
+	 */
+	protected function safeLock($dataStore)
+	{
+		if(!flock($this->safeLockFP,LOCK_EX)) throw new Err('SafeLock failed.');
+		$dataStore->lock();
+		if(!flock($this->safeLockFP,LOCK_UN)) throw new Err('SafeLock unlock failed.');
 	}
 }

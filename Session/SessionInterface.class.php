@@ -23,4 +23,9 @@ interface SessionInterface
 	 * @return mixed \ZedBoot\DataStore\DataStoreInterface on success, null if $forceCreate is false and datastore was expired or nonexistent
 	 */
 	public function getDataStore($key,$expiry=null,$forceCreate=true);
+	/**
+	 * Removes all data in the session
+	 * @param String $keyRoot If not empty, only clear DataStores within the specified space ('foo/bar' will cause 'foo/bar/ and 'foo/bar/baz' to be cleared, but not 'foo')
+	 */
+	public function clearAll($keyRoot='');
 }

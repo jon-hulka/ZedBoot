@@ -29,9 +29,13 @@ class SubSession implements \ZedBoot\Session\SessionInterface
 		$this->session=$session;
 		$this->subPath=trim($subPath,'/');
 	}
-	public function getDataStore($key,$expiry=null)
+	public function getDataStore($key,$expiry=null,$forceCreate=true)
 	{
 		if(empty($expiry)) $expiry=$this->expiry;
-		return $this->session->getDataStore($this->subPath.'/'.trim($key,'/'),$expiry);
+		return $this->session->getDataStore($this->subPath.'/'.trim($key,'/'),$expiry,$forceCreate);
+	}
+	public function clearAll($keyRoot='')
+	{
+		parent->clearAll($this->subPath.'/'.trim($keyRoot,'/'));
 	}
 }
