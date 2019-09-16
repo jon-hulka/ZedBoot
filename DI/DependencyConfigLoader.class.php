@@ -88,7 +88,7 @@ class DependencyConfigLoader
 			$prefix='Config file '.$path.': factory service '.json_encode($id);
 			if(!is_array($params)) throw new Err($prefix.' is not specified by an array.');
 			if(count($params)<2) throw new Err($prefix.' must have at least 2 parameters (factory id and factory function)');
-			if(count($params)>2 && !(is_null($params[2]) || is_array($params[2]))) throw new Err($delim.'third parameter (arguments, optional) must be null or array');
+			if(count($params)>2 && !(is_null($params[2]) || is_array($params[2]))) throw new Err($prefix.'third parameter (arguments, optional) must be null or array');
 			if(count($params)>3 && getType($params[3])!=='boolean') throw new Err($delim.'fourth parameter (singleton, optional) must be boolean');
 			$factoryId=$params[0];
 			$function=$params[1];
