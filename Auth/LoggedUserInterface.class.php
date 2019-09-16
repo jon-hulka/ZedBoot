@@ -23,7 +23,7 @@ interface LoggedUserInterface
 	 * Should implicitly load data if not loaded
 	 * @return mixed null if no user logged in, false on failure, otherwise Array('id'=><user id>,'name'=><user name>,'info'=><info>,'roles'=><roles>,'modTime'=><mod time>,'loginTime'=><login time>)
 	 * modTime and loginTime should be unix timestamps (expressed in seconds, decimals are OK)
-	 * modTime indicates last time the user was modified (if there are no recent changes (within session expiry time), a value of 0 is acceptable)
+	 * modTime indicates last time the user was modified (if there are no recent changes (since login time), a value of 0 is acceptable)
 	 */
 	public function getUser();
 	/**
