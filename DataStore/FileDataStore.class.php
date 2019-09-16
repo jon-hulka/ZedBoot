@@ -62,14 +62,14 @@ class FileDataStore implements \ZedBoot\DataStore\DataStoreInterface
 		$output=null;
 		if(is_null($this->filePointer)) throw new Err('Attempt to write without acquiring lock.');
 		$output=json_encode($data);
-		if($output===false) throw new Err('System error: encoding JSON.');
-		if(!rewind($this->filePointer)) throw new Err('System eror: rewinding file '.$this->path);
-		if(!ftruncate($this->filePointer,0)) throw new Err('System error: truncating file '.$this->path);
+		if($output===false) throw new Err('Encoding JSON.');
+		if(!rewind($this->filePointer)) throw new Err('Rewinding file '.$this->path);
+		if(!ftruncate($this->filePointer,0)) throw new Err('Truncating file '.$this->path);
 		$written=0;
 		$toWrite=strlen($output);
 		while($toWrite>$written)
 		{
-			if(false===($w=fwrite($this->filePointer,substr($output,$written)))) throw new Err('System error writing '.$this->path);
+			if(false===($w=fwrite($this->filePointer,substr($output,$written)))) throw new Err('Writing '.$this->path);
 			$written+=$w;
 		}
 	}
@@ -77,10 +77,10 @@ class FileDataStore implements \ZedBoot\DataStore\DataStoreInterface
 	{
 		if(!is_null($this->filePointer)) //no effect if not locked
 		{
-			if(!flock($this->filePointer,LOCK_UN)) throw new Err('System error: unlock failed: '.$this->path);
-			if(!fclose($this->filePointer)) throw new Err('System error: close file failed: '.$this->path);
+			if(!touch($this->path)) throw new Err('Touch failed: '.$this->path);
+			if(!flock($this->filePointer,LOCK_UN)) throw new Err('Unlock failed: '.$this->path);
+			if(!fclose($this->filePointer)) throw new Err('Close file failed: '.$this->path);
 			$this->filePointer=null;
-			if(!touch($this->path)) throw new Err('System error: touch failed: '.$this->path);
 		}
 	}
 	public function quickRead()
