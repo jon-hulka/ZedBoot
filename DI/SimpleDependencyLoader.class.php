@@ -60,9 +60,9 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 			{
 				if($t==='object')
 				{
-					if(!($result instanceof $type)) throw new Err('Expected '.$type.', got '.get_class($result));
+					if(!($result instanceof $type)) throw new Err('Getting '.$id.': Expected '.$type.', got '.get_class($result));
 				}
-				else throw new Err('Expected '.$type.', got '.$t);
+				else throw new Err('Getting '.$id.': Expected '.$type.', got '.$t);
 			}
 		}
 		return $result;
@@ -150,7 +150,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 			{
 				$v=$this->loadDependency($arg,$dependencyChain);
 			}
-			else throw new Err('Loading '.implode(' > ',$dependencyChain).': Expected dependecy id (String), Array, NULL, or scalar constant (numeric, bool); got '.gettype($arg).'.');
+			else throw new Err('Loading '.implode(' > ',$dependencyChain).': Expected argument to be one of dependecy id (String), Array, NULL, or scalar constant (numeric, bool); got '.gettype($arg).'.');
 			if($preserveKeys)
 			{
 				$argValues[$k]=$v;
