@@ -16,8 +16,8 @@ interface DependencyLoaderInterface
 {
 	/**
 	 * @param string $id parameter id
-	 * @param string|null $classType optional expected result type
+	 * @param string|null $type optional expected result type, could be class name or any expected result from gettype()
 	 * @return mixed loaded dependency
 	 */
-	public function getDependency($id,$classType=null);
+	public function getDependency($id,$type=null);
 }

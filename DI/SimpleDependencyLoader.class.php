@@ -28,6 +28,21 @@ namespace ZedBoot\DI;
 use \ZedBoot\Error\ZBError as Err;
 class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 {
+	protected static
+		//Expected results from gettype
+		//Searching is faster on keys rather than values
+		$types=[
+			'boolean'=>true,
+			'integer'=>true,
+			'double'=>true,
+			'string'=>true,
+			'array'=>true,
+			'object'=>true,
+			'resource'=>true,
+			'resource (closed)'=>true,
+			'NULL'=>true,
+			'unknown type'=>true
+		];
 	protected
 		$dependencyIndex=null,
 		$singletons=array();
@@ -35,17 +50,20 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 	{
 		$this->dependencyIndex=$dependencyIndex;
 	}
-	public function getDependency($id,$classType=null)
+	public function getDependency($id,$type=null)
 	{
-		$v=null;
 		$result=$this->loadDependency($id,array());
-		if(!empty($classType))
+		if(!empty($type))
 		{
-			if(!is_object($result))
+			$t=gettype($result);
+			if($t!==$type)
 			{
-				throw new Err('Expected object of type '.$classType.', got non-object');
+				if($t==='object')
+				{
+					if(!($result instanceof $type)) throw new Err('Expected '.$type.', got '.get_class($result));
+				}
+				else throw new Err('Expected '.$type.', got '.$t);
 			}
-			else if(!($result instanceof $classType)) throw new Err('Expected object of type '.$classType.', got '.get_class($result));
 		}
 		return $result;
 	}
@@ -116,6 +134,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 	protected function extractArguments(array $args, array $dependencyChain, $preserveKeys=false)
 	{
 		$argValues=array();
+		$v=null;
 		foreach($args as $k=>$arg)
 		{
 			if(is_array($arg))
