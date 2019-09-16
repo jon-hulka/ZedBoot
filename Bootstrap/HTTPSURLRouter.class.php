@@ -20,7 +20,7 @@ class HTTPSURLRouter implements \ZedBoot\Bootstrap\URLRouterInterface
 		$router=null;
 	public function __construct(\ZedBoot\Bootstrap\URLRouterInterface $router)
 	{
-		$this->loggedUser=$loggedUser;
+		$this->router=$router;
 	}
 	
 	public function getError(){ return $this->error; }
