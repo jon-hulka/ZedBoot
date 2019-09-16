@@ -1,2 +1,6 @@
 # ZedBoot
-PHP framework designed for business applications
+PHP framework providing:
+ - Fine-grained session management
+ - Dependency injection
+ - URL routing
+ - Class autoloading
