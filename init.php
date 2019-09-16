@@ -77,7 +77,7 @@ function zbInit($configDir,$bootConfigKey,$zbClassPath)
 		$dependencyIndex=new \ZedBoot\DI\NamespacedDependencyIndex($configLoader, new \ZedBoot\DI\SimpleDependencyIndex(),$configDir);
 		$dependencyLoader=new \ZedBoot\DI\SimpleDependencyLoader($dependencyIndex);
 		
-		$classRegistry=$dependencyLoader->getDependency($bootConfigKey.':classRegistry','Array');
+		$classRegistry=$dependencyLoader->getDependency($bootConfigKey.':classRegistry','array');
 		$i=0;
 		foreach($classRegistry as $k=>$item)
 		{
