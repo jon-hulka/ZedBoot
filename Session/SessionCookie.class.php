@@ -106,12 +106,12 @@ class SessionCookie implements \ZedBoot\Session\CookieInterface
 			{
 //Enter cookie CS
 				$cookie=$ds->lockAndRead();
-				if(!is_array($cookie)) $cookie=array();
+				if(!is_array($cookie)) $cookie=[];
 				$internalId=empty($cookie['internalId'])?null:$cookie['internalId'];
 				if(empty($internalId) || empty($cookie['accessTime']) || $cookie['accessTime']<($now-$this->expireSeconds))
 				{
 					//Clear cookie data
-					$cookie=array();
+					$cookie=[];
 					$this->id=null;
 				}
 				else
@@ -182,6 +182,7 @@ class SessionCookie implements \ZedBoot\Session\CookieInterface
 	 */
 	protected function helpCreate($internalId,&$index)
 	{
+//!!!IMPORTANT only call from within index CS
 		$now=time();
 		$cookieId=$this->getUnique();
 		$index[$internalId]=$cookieId;
@@ -192,7 +193,7 @@ class SessionCookie implements \ZedBoot\Session\CookieInterface
 		//Create the datastore
 		$ds=$this->session->getDataStore($cookieId,$this->expireSeconds,true);
 //Enter new cookie CS (only safe because datastore is guaranteed not previously created)
-		$ds->quickWrite(array('accessTime'=>$now, 'internalId'=>$internalId));
+		$ds->quickWrite(['accessTime'=>$now, 'internalId'=>$internalId]);
 //Exit new cookie CS
 	}
 	protected function setCookie($value,$expiry)
@@ -214,6 +215,7 @@ class SessionCookie implements \ZedBoot\Session\CookieInterface
 	 */
 	protected function getUnique()
 	{
+//!!!IMPORTANT only call from within index CS
 		$result=null;
 		$fail=true;
 		do
@@ -222,11 +224,11 @@ class SessionCookie implements \ZedBoot\Session\CookieInterface
 			//Check for collision (id matches another cookie)
 			//collision if datastore exists (load with the create option off)
 			$ds=$this->session->getDataStore($result,$this->expireSeconds,false);
-			//If the datastore was created, it means there was a collision
+			//If the datastore already exists, it means there was a collision
 			//That means the expiry will be erroneously extended on the
 			//collided datastore, but given the low probability and extremely
-			//low severity(somebody's cookie will last longer than expected
-			//if their browser doesn't respect expiry), that will not be a problem
+			//low severity(datastore expiry is extended, but cookie expiry is not),
+			//that will not be a problem
 			$fail=$ds!==null;
 		} while($fail);
 		return $result;
@@ -244,7 +246,7 @@ class SessionCookie implements \ZedBoot\Session\CookieInterface
 	{
 		$this->indexDS=$this->session->getDataStore('000index',0,true);
 		$data=$this->indexDS->lockAndRead();
-		if(!is_array($data)) $data=array();
+		if(!is_array($data)) $data=[];
 	}
 	protected function writeAndUnlockIndex($data)
 	{
