@@ -124,6 +124,7 @@ class SessionCookie implements \ZedBoot\Session\CookieInterface
 						$this->regenerate($cookie['internalId'],$cookieId);
 					}
 					else $cookie['accessTime']=$now;
+					$this->setCookie($cookieId,$now+$this->expireSeconds);
 					$this->id=$internalId;
 				}
 				$ds->writeAndUnlock($cookie);
