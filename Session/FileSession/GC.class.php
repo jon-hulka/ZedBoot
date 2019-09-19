@@ -70,8 +70,8 @@ class GC
 	protected function clearSession($sessionId)
 	{
 		$mtime=null;
-		$metaPath=$this->savePath.'/'.sessionId.'.meta';
-		$dataPath=$this->savePath.'/'.sessionId.'.data';
+		$metaPath=$this->savePath.'/'.$sessionId.'.meta';
+		$dataPath=$this->savePath.'/'.$sessionId.'.data';
 		//if file hasn't been modified, recursively remove .data directory
 		if(is_dir($dataPath)) $this->rmdirRecursive($dataPath);
 		if(!unlink($metaPath)) throw new Err('Unable to remove meta file '.$metaPath);
