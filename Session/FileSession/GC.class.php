@@ -19,7 +19,7 @@ class GC
 	public function initSession($sessionId)
 	{
 		$time=time();
-		$metaPath=$this->savePath.'/'.$this->sessionId.'.meta';
+		$metaPath=$this->savePath.'/'.$sessionId.'.meta';
 		if(!$this->started) $this->start();
 		if(!flock($this->lockFP,LOCK_EX)) throw new Err('Lock failed.');
 		if(file_exists($metaPath))
