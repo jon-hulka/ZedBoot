@@ -1,5 +1,6 @@
 <?php
 namespace ZedBoot\Session\FileSession;
+use \ZedBoot\Error\ZBError as Err;
 class GC
 {
 	protected
