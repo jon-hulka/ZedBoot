@@ -10,6 +10,8 @@
 /**
  * SessionInterface implementation
  * Produces instances of \ZedBoot\DataStore\FileDataStore
+ * Session expiry is guaranteed. If an expired session is used, all data is cleared first.
+ * !!!Race conditions could occur if page load time exceeds session expiry.
  * For optimal performance use on a ram disk or tmpfs drive, but pay attention to file size/block size ratio (you could waste a lot of space creating small files with 4k blocks on tmpfs).
  */
 namespace ZedBoot\Session;
@@ -26,9 +28,9 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$savePath=null,
 		$dataPath=null,
 		$metaStore=null,
-		$safeLockFP=null,
 		$started=false,
-		$gcChance=null;
+		$gcChance=null,
+		$gc=null;
 	/**
 	 * If either $gcChance or $expiry is 0, garbage collection will not run
 	 * @param $savePath String root directory for files
@@ -74,8 +76,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$time=time();
 		if(!$this->started) $this->start();
 //Begin critical section
-		$this->safeLock($this->metaStore);
-		$metaData=$this->metaStore->read();
+		$metaData=$this->metaStore->lockAndRead();
 		if(!is_array($metaData)) $metaData=[];
 		if($keyRoot=='')
 		{
@@ -100,7 +101,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$pathLen=strlen($keyPath);
 		foreach($expByKey as $subPath=>$exp)
 		{
-			if(substr($subpath,0,$pathLen)!==$keyPath) $result[$subPath]=$exp;
+			if(substr($subPath,0,$pathLen)!==$keyPath) $result[$subPath]=$exp;
 		}
 		return $result;
 	}
@@ -118,22 +119,22 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$fp=null;
 		$metaData=null;
 		$time=time();
+		$this->gc=new \ZedBoot\Session\FileSession\GC($this->savePath,$this->expiry);
 		if(!is_dir($this->savePath) && !mkdir($this->savePath,0700,true)) throw new Err('Unable to create directory '.$this->savePath);
 		if(!ctype_alnum($this->sessionId)) throw new Err('Session id must be alphanumeric.');
 		$this->dataPath=$this->savePath.'/'.$this->sessionId.'.data';
-		//In order to safely lock meta datastores and ensure no race condtitions with gc, everything synchronizes on this file
-		if(false===($this->safeLockFP=fopen($this->savePath.'/.lock','c+',0600))) throw new Err('Unable to open/create file '.$this->savePath.'/.lock');
+		//Renew the session
+		$this->gc->initSession($this->sessionId,true);
 		//Creation and deletion of data and subfolders happens while this file is locked
 		$this->metaStore=new \ZedBoot\DataStore\FileDataStore($this->savePath.'/'.$this->sessionId.'.meta');
 //Begin critical section
-		$this->safeLock($this->metaStore);
-		$metaData=$this->metaStore->read();
+		$metaData=$this->metaStore->lockAndRead();
 		if(!is_array($metaData)) $metaData=[];
 		$this->clearExpiredKeys($metaData,$time);
 		if(!(is_dir($this->dataPath) || mkdir($this->dataPath,0700))) throw new Err('Unable to create data folder: '.$this->dataPath);
 		$this->metaStore->writeAndUnlock($metaData);
 //End critical section
-		if($this->expiry>0 && $this->gcChance>0 && rand(0,$this->gcChance-1)==floor($this->gcChance/2)) $this->gc();
+		if($this->expiry>0 && $this->gcChance>0 && rand(0,$this->gcChance-1)==floor($this->gcChance/2)) $this->gc->gc();
 		$this->started=true;
 	}
 	protected function clearExpiredKeys(&$metaData,$time)
@@ -180,8 +181,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		//but it should have been renewed by start(),
 		//so if the script has lasted long enough for it to expire there is a bigger problem
 //Begin critical section
-		$this->safeLock($this->metaStore);
-		$metaData=$this->metaStore->read();
+		$metaData=$this->metaStore->lockAndRead();
 		if(!is_array($metaData)) $metaData=[];
 		if(!array_key_exists('exp_by_key',$metaData)) $metaData['exp_by_key']=[];
 		$expByKey=$metaData['exp_by_key'];
@@ -213,44 +213,6 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 //End critical section
 		return $result;
 	}
-	/**
-	 * Run garbage collection
-	 * Will be handled automatically if $gcChance parameter to constructor is non-zero
-	 */
-	protected function gc()
-	{
-		$mt=null;
-		$time=time();
-		$toCheck=[];
-		//All sessions are marked with a .meta file
-		if(false===($files=glob($this->savePath.'/*.meta'))) throw new Err('Unable to search session directory: glob('.$this->savePath.'/*.meta) failed.');
-		foreach($files as $file)
-		{
-			//This is just a quick check to speed things up. A more comprehensive lock and check is made in gcProcessSession()
-			if(false===($mt=filemtime($file))) throw new Err('Unable to get modified time for meta file: filemtime('.$this->dataPath.'/'.$file.') failed');
-			if($time-$mt>$this->expiry) $toCheck[]=basename($file,'.meta');
-		}
-		foreach($toCheck as $name)
-		{
-			$this->gcProcessSession($this->savePath.'/'.$name.'.meta',$this->savePath.'/'.$name.'.data',$time);
-		}
-	}
-	protected function gcProcessSession($metaPath,$dataPath,$time)
-	{
-		$mtime=null;
-		$remove=false;
-		$ds=new \ZedBoot\DataStore\FileDataStore($metaPath);
-//Begin critical section
-		$this->safeLock($ds);
-		//check modified time again in case something happened in the meantime
-		if(false===($mtime=filemtime($metaPath))) throw new Err('Unable to get mtime for '.$metaPath);
-		$remove=$time-$mtime>$this->expiry;
-		//if file hasn't been modified, recursively remove .data directory
-		if($remove && is_dir($dataPath)) $this->rmdirRecursive($dataPath);
-		$ds->unlock();
-//End critical section
-		if($remove && !unlink($metaPath)) throw new Err('Unable to remove meta file '.$metaPath);
-	}
 
 	protected function rmdirRecursive($path)
 	{
@@ -263,20 +225,10 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		{
 			if(is_dir($sub))
 			{
-				$this->rmr($sub);
+				$this->rmdirRecursive($sub);
 			}
 			else if(is_file($sub) && !unlink($sub)) throw new Err('Unable to delete file '.$sub);
 		}
 		if(!rmdir($path)) throw new Err('Unable to delete directory '.$path);
-	}
-	
-	/**
-	 * Ensures that a datastore's file is not deleted between create and lock.
-	 */
-	protected function safeLock($dataStore)
-	{
-		if(!flock($this->safeLockFP,LOCK_EX)) throw new Err('SafeLock failed.');
-		$dataStore->lock();
-		if(!flock($this->safeLockFP,LOCK_UN)) throw new Err('SafeLock unlock failed.');
 	}
 }

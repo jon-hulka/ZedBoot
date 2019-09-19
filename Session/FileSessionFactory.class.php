@@ -23,6 +23,7 @@ class FileSessionFactory implements \ZedBoot\Session\SessionFactoryInterface
 	}
 	public function getSession($sessionId)
 	{
+		if(!ctype_alnum($sessionId)) throw new Err('Session id must be alphanumeric.');
 		return new \ZedBoot\Session\FileSession($this->savePath,$sessionId,$this->expiry,$this->gcChance);
 	}
 }
