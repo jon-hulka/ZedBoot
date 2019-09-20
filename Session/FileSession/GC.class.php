@@ -44,6 +44,7 @@ class GC
 		$mt=null;
 		$time=time();
 		$toCheck=[];
+		if(!$this->started) $this->start();
 		if(!flock($this->lockFP,LOCK_EX)) throw new Err('Lock failed.');
 		//All sessions are marked with a .meta file
 		if(false===($files=glob($this->savePath.'/*.meta'))) throw new Err('Unable to search session directory: glob('.$this->savePath.'/*.meta) failed.');
