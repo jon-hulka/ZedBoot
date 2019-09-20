@@ -182,7 +182,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		if(count($pathTree)>0)
 		{
 			//Clear child directories
-			foreach($pathTree as $dir=>$subTree) $hasFiles=$hasFiles||clearEmptyPaths($pathTree.'/'.$dir,$subTree);
+			foreach($pathTree as $dir=>$subTree) $hasFiles=$hasFiles||$this->clearEmptyPaths($pathTree.'/'.$dir,$subTree);
 		}
 		if(!$hasFiles) $hasFiles=count(glob($path.'/{,.}[!.,!..]*', GLOB_BRACE))>0;
 		if(!$hasFiles) rmdir($path);
