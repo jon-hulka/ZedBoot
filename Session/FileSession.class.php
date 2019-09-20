@@ -172,7 +172,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 			//key is ok - put it at the back of the queue
 			else $expByKey[$k]=$t;
 		}
-		$this->clearEmptyPaths($this->savePath,$removed);
+		$this->clearEmptyPaths($this->savePath,$removedTree);
 		$metaData['exp_by_key']=$expByKey;
 	}
 	
