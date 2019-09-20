@@ -179,7 +179,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 	protected function clearEmptyPaths($path,Array $pathTree)
 	{
 		$hasFiles=false;
-		if($count($pathTree)>0)
+		if(count($pathTree)>0)
 		{
 			//Clear child directories
 			foreach($pathTree as $dir=>$subTree) $hasFiles=$hasFiles||clearEmptyPaths($pathTree.'/'.$dir,$subTree);
