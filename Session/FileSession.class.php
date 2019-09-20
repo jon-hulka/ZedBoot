@@ -75,6 +75,8 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$metaData=null;
 		$time=time();
 		if(!$this->started) $this->start();
+		//It is possible for the .meta file to be deleted while locking,
+		//but it should have been renewed by start()
 //Begin critical section
 		$metaData=$this->metaStore->lockAndRead();
 		if(!is_array($metaData)) $metaData=[];
@@ -85,12 +87,15 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		}
 		else
 		{
-			$keyPath=$this->processKey($keyRoot);
+			//Keys stored in meta data always start with '/'
+			$keyPath='/'.$this->processKey($keyRoot);
+			$fullPath=$this->savePath.$keyPath;
 			if(array_key_exists('exp_by_key',$metaData))
 			{
 				$metaData['exp_by_key']=$this->clearMetaSubPaths($metaData['exp_by_key'],$keyPath);
 			}
-			if(is_dir($keyPath)) $this->rmdirRecursive($keyPath);
+			if(is_dir($fullPath.'subs')) $this->rmdirRecursive($fullPath.'subs');
+			if(file_exists($fullPath)) unlink($fullPath);
 		}
 //End critical section
 		$this->metaStore->writeAndUnlock($metaData);
@@ -101,7 +106,11 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$pathLen=strlen($keyPath);
 		foreach($expByKey as $subPath=>$exp)
 		{
-			if(substr($subPath,0,$pathLen)!==$keyPath) $result[$subPath]=$exp;
+			//Discard key and any subkeys found in the meta data
+			if(
+				$subPath!==$keyPath &&
+				substr($subPath,0,$pathLen+5)!==$keyPath.'.subs'
+			) $result[$subPath]=$exp;
 		}
 		return $result;
 	}
@@ -127,6 +136,8 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$this->gc->initSession($this->sessionId,true);
 		//Creation and deletion of data and subfolders happens while this file is locked
 		$this->metaStore=new \ZedBoot\DataStore\FileDataStore($this->savePath.'/'.$this->sessionId.'.meta');
+		//It is possible for the .meta file to be deleted while locking,
+		//but it should have been renewed by $this->gc->initSession
 //Begin critical section
 		$metaData=$this->metaStore->lockAndRead();
 		if(!is_array($metaData)) $metaData=[];
@@ -167,7 +178,6 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 					if(!array_key_exists($dir,$path)) $path[$dir]=[];
 					$path=&$path[$dir];
 				}
-//To do: go up the tree and remove directories
 			}
 			//key is ok - put it at the back of the queue
 			else $expByKey[$k]=$t;
@@ -204,7 +214,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		// ** Only one case where $loadDS doesn't coincide with $forceCreate - it will be handled accordingly
 		$loadDS=$forceCreate;
 		$time=time();
-		//It is possible for the .meta file to be deleted during this process,
+		//It is possible for the .meta file to be deleted while locking,
 		//but it should have been renewed by start(),
 		//so if the script has lasted long enough for it to expire there is a bigger problem
 //Begin critical section
