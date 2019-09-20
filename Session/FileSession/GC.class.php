@@ -26,7 +26,7 @@ class GC
 		if(file_exists($metaPath))
 		{
 			$mtime=filemtime($metaPath);
-			if($time-$mt<=$this->expiry)
+			if($time-$mtime<=$this->expiry)
 			{
 				//Not past expiry yet
 				touch($metaPath);

@@ -145,6 +145,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		//Clean up expired items
 		//check one fifth-ish of keys, up to 10
 		$c=$c>0?(min(floor($c/5+1),10)):0;
+		$removedTree=[];
 		for($i=0; $i<$c; $i++)
 		{
 			//get the first key off the queue
@@ -155,11 +156,37 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 			{
 				$p=$this->dataPath.'/'.$k;
 				if(file_exists($p) && !unlink($p)) throw new Err('Could not remove data file '.$p);
+				//Keep an index of paths that might now be empty
+				$parts=explode('/',trim($k,'/'));
+				//Don't include the file name - it is already gone
+				array_pop($parts);
+				$path=&$removedTree;
+				if(count($parts)>0) foreach($parts as $part)
+				{
+					$dir=$part.'.sub';
+					if(!array_key_exists($dir,$path)) $path[$dir]=[];
+					$path=&$path[$dir];
+				}
+//To do: go up the tree and remove directories
 			}
 			//key is ok - put it at the back of the queue
 			else $expByKey[$k]=$t;
 		}
+		$this->clearEmptyPaths($this->savePath,$removed);
 		$metaData['exp_by_key']=$expByKey;
+	}
+	
+	protected function clearEmptyPaths($path,Array $pathTree)
+	{
+		$hasFiles=false;
+		if($count($pathTree)>0)
+		{
+			//Clear child directories
+			foreach($pathTree as $dir=>$subTree) $hasFiles=$hasFiles||clearEmptyPaths($pathTree.'/'.$dir,$subTree);
+		}
+		if(!$hasFiles) $hasFiles=count(glob($path.'/{,.}[!.,!..]*', GLOB_BRACE))>0;
+		if(!$hasFiles) rmdir($path);
+		return $hasFiles;
 	}
 
 	protected function getExpirableDataStore($subPath,$expiry,$forceCreate)
