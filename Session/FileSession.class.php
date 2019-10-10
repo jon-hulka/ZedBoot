@@ -89,12 +89,12 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		{
 			//Keys stored in meta data always start with '/'
 			$keyPath='/'.$this->processKey($keyRoot);
-			$fullPath=$this->savePath.$keyPath;
+			$fullPath=$this->dataPath.$keyPath;
 			if(array_key_exists('exp_by_key',$metaData))
 			{
 				$metaData['exp_by_key']=$this->clearMetaSubPaths($metaData['exp_by_key'],$keyPath);
 			}
-			if(is_dir($fullPath.'subs')) $this->rmdirRecursive($fullPath.'subs');
+			if(is_dir($fullPath.'.subs')) $this->rmdirRecursive($fullPath.'.subs');
 			if(file_exists($fullPath)) unlink($fullPath);
 		}
 //End critical section
@@ -110,7 +110,10 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 			if(
 				$subPath!==$keyPath &&
 				substr($subPath,0,$pathLen+5)!==$keyPath.'.subs'
-			) $result[$subPath]=$exp;
+			)
+			{
+				$result[$subPath]=$exp;
+			}
 		}
 		return $result;
 	}
