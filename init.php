@@ -37,8 +37,13 @@
  * $parameters=
  * [
  * ...
- *     'foo'=>'bar',
- *     'baz'=>'zzz',
+ *     'sharedVariables'=>
+ *     [
+ *         ...
+ *         'foo'=>'bar',
+ *         'baz'=>'zzz',
+ *         ...
+ *     ]
  * ...
  * ]
  * Other configuration files will have access to $foo (='bar') and $baz (='zzz')
