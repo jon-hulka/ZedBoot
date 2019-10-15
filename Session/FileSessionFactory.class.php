@@ -11,9 +11,8 @@ namespace ZedBoot\Session;
 use \ZedBoot\Error\ZBError as Err;
 class FileSessionFactory implements \ZedBoot\Session\SessionFactoryInterface
 {
-	protected static
-		$sessions;
 	protected
+		$sessions;
 		$savePath=null,
 		$expiry=null,
 		$gcChance=null;
@@ -22,15 +21,15 @@ class FileSessionFactory implements \ZedBoot\Session\SessionFactoryInterface
 		$this->savePath=$savePath;
 		$this->expiry=$expiry;
 		$this->gcChance=$gcChance;
-		static::$sessions=[];
+		$this->sessions=[];
 	}
 	public function getSession($sessionId)
 	{
 		$result=null;
 		if(!ctype_alnum($sessionId)) throw new Err('Session id must be alphanumeric.');
-		if(array_key_exists($sessionId,static::$sessions))
+		if(array_key_exists($sessionId,$this->sessions))
 		{
-			$result=static::$sessions[$sessionId];
+			$result=$this->sessions[$sessionId];
 		}
 		else $result=new \ZedBoot\Session\FileSession($this->savePath,$sessionId,$this->expiry,$this->gcChance);
 		return $result;
