@@ -21,7 +21,7 @@ interface LoggedUserInterface
 	public function getMessage();
 	/**
 	 * Should implicitly load data if not loaded
-	 * @return mixed null if no user logged in, false on failure, otherwise Array('id'=><user id>,'name'=><user name>,'info'=><info>,'roles'=><roles>,'modTime'=><mod time>,'loginTime'=><login time>)
+	 * @return mixed null if no user logged in, false on failure, otherwise Array('id'=><user id>,'username'=><user name>,'info'=><info>,'roles'=><roles>,'modTime'=><mod time>,'loginTime'=><login time>)
 	 * modTime and loginTime should be unix timestamps (expressed in seconds, decimals are OK)
 	 * modTime indicates last time the user was modified (if there are no recent changes (since login time), a value of 0 is acceptable)
 	 */
@@ -29,7 +29,7 @@ interface LoggedUserInterface
 	/**
 	 * Sets user for the session
 	 * @param String $id
-	 * @param String $name
+	 * @param String $username
 	 * @param Array $info miscellaneous user data
 	 * @param Array $roles roles assigned to the user
 	 * @param Numeric $modTime last time the user was modified
@@ -37,7 +37,7 @@ interface LoggedUserInterface
 	 */
 	public function setUser(
 		$id,
-		$name,
+		$username,
 		Array $info,
 		Array $roles,
 		$modTime);
