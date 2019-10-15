@@ -28,9 +28,19 @@ interface LoggedUserInterface
 	public function getUser();
 	/**
 	 * Sets user for the session
+	 * @param String $id
+	 * @param String $name
+	 * @param Array $info miscellaneous user data
+	 * @param Array $roles roles assigned to the user
+	 * @param Numeric $modTime last time the user was modified
 	 * @return boolean true on success, false on failure
 	 */
-	public function setUser($id);
+	public function setUser(
+		$id,
+		$name,
+		Array $info,
+		Array $roles,
+		$modTime);
 	/**
 	 * Clears user for the session
 	 */
