@@ -27,17 +27,18 @@ class DependencyConfigLoader
 	/**
 	 * Specify a set of configuration parameters to be included with every call to loadConfig()
 	 * These will be available to the config script as variables
-	 * '__path', 'parameters', 'services', and 'factoryServices' are not permitted as keys, if any appear an exception will be thrown
+	 * '__path', 'parameters', 'services', 'factoryServices', and 'includes' are not permitted as keys, if any appear an exception will be thrown
 	 */
 	public function setConfigParameters(array $configParameters)
 	{
 		$this->configParameters=$configParameters;
 	}
 	/**
-	 * The config file can have three arrays:
+	 * The config file can have up to four arrays:
 	 *  - $parameters - id => value pairs
 	 *  - $services - id => array(className, optional arguments array, optional singleton boolean)
 	 *  - $factoryServices - id => array(factory id, factory function name, optional arguments array, optional singleton boolean)
+	 *  - $includes - paths (absolute or relative) to config files that will be loaded as if their contents belong to the script at $path
 	 * For more details, see DependencyIndexInterface
 	 * @param string $path file to load
 	 */
@@ -46,9 +47,10 @@ class DependencyConfigLoader
 		$parameters=null;
 		$services=null;
 		$factoryServices=null;
+		$includes=null;
 		if(!file_exists($path)) throw new Err('Config file '.$path.' not found.');
 		$cf=static::$configFunction;
-		$cf($path,$parameters,$services,$factoryServices,$this->configParameters);
+		$cf($path,$parameters,$services,$factoryServices,$includes,$this->configParameters);
 		if(!empty($parameters))
 		{
 			if(!is_array($parameters)) throw new Err('$parameters is not an array in config file '.$path.'.');
@@ -63,6 +65,29 @@ class DependencyConfigLoader
 		{
 			if(!is_array($factoryServices)) throw new Err('$factoryServices is not an array in config file '.$path.'.');
 			$this->addFactoryServices($dependencyIndex,$factoryServices,$path);
+		}
+		if(!empty($includes))
+		{
+			if(!is_array($includes)) throw new Err('$includes is not an array in config file '.$path.'.');
+			foreach($includes as $includePath)
+			{
+				if(substr($includePath,0,1)!=='/')
+				{
+					//try to resolve relative paths
+					$pathParts=explode('/',trim(dirname($path),'/'));
+					$includePathParts=explode('/',trim($includePath,'/'));
+					while($part=array_shift($includePathParts))
+					{
+						if($part=='..')
+						{
+							array_pop($pathParts);
+						}
+						else $pathParts[]=$part;
+					}
+					$includePath='/'.implode('/',$pathParts);
+				}
+				$this->loadConfig($dependencyIndex,$includePath);
+			}
 		}
 	}
 	protected function addServices($dependencyIndex,$services,$path)
@@ -100,9 +125,9 @@ class DependencyConfigLoader
 	}
 }
 //Config fuction is defined outside the DependencyConfigLoader's private scope, keeping it insulated from the configuration file
-DependencyConfigLoader::setConfigFunction(function($__path,&$parameters,&$services,&$factoryServices,Array $configParameters)
+DependencyConfigLoader::setConfigFunction(function($__path,&$parameters,&$services,&$factoryServices,&$includes,Array $configParameters)
 {
-	foreach(array('__path','parameters','services','factoryServices') as $k) if(array_key_exists($k,$configParameters)) throw new Err('\''.$k.'\' cannot be a key in $configParameters');
+	foreach(array('__path','parameters','services','factoryServices','includes') as $k) if(array_key_exists($k,$configParameters)) throw new Err('\''.$k.'\' cannot be a key in $configParameters');
 	unset($k);
 	extract($configParameters);
 	include $__path;
