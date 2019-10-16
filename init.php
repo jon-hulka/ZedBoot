@@ -51,6 +51,7 @@
  *  - parameters
  *  - services
  *  - factoryServices
+ *  - includes
  *  - __path
  *  - routeData
  *  - baseURL
