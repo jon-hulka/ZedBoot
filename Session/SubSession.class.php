@@ -1,15 +1,17 @@
 <?php
 /**
- * class SubSession | ZedBoot//Session/SubSession.class.php
+ * class SubSession | ZedBoot/Session/SubSession.class.php
  * @license     GNU General Public License, version 3
  * @package     Session
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2016-2018 Jonathan Hulka
+ * @copyright   Copyright (c) 2016-2019 Jonathan Hulka
  */
 
 /**
  * SessionInterface implementation
- * Decorates a SessionInterface instance allowing multiple SubSession instances to use different key namespaces.
+ * Decorates a SessionInterface instance allowing multiple SubSession
+ * instances to share a single SessionInterface without risk of key
+ * collisions.
  */
 
 namespace ZedBoot\Session;
