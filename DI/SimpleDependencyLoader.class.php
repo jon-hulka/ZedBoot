@@ -126,7 +126,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		$factory=$this->loadDependency($factoryId,$dependencyChain);
 		if(!is_object($factory)) throw new Err('Factory '.json_encode($id).' is not an object.');
 		$argValues=$this->extractArguments($def['args'],$dependencyChain);
-		$result=call_user_func_array(array($factory,$def['function']),$args);
+		$result=call_user_func_array(array($factory,$def['function']),$argValues);
 		if($def['singleton']) $this->singletons[$id]=$result;
 		return $result;
 

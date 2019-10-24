@@ -24,7 +24,7 @@ class SubSessionFactory implements \ZedBoot\Session\SessionFactoryInterface
 	 * @param $session \ZedBoot\Session\SessionInterface
 	 * @param $subPath String namespace to be used for generated SubSessions
 	 */
-	public function __construct(\ZedBoot\Session\SessionInterface $sessionFactory,$subPath)
+	public function __construct(\ZedBoot\Session\SessionFactoryInterface $sessionFactory,$subPath)
 	{
 		$this->sessionFactory=$sessionFactory;
 		$this->subPath=$subPath;

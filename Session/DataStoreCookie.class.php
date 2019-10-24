@@ -130,6 +130,7 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 		$cookie=null;
 		$ds=null;
 		$this->id=null;
+		$now=time();
 		if(empty($_COOKIE[$this->name]) && $create)
 		{
 //Enter critical section
