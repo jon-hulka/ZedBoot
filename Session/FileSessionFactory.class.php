@@ -13,8 +13,8 @@ class FileSessionFactory implements \ZedBoot\Session\SessionFactoryInterface
 {
 	protected
 		$sessions;
-		$savePath=null,
-		$expiry=null,
+		$savePath=null;
+		$expiry=null;
 		$gcChance=null;
 	public function __construct($savePath,$expiry=null,$gcChance=null)
 	{
