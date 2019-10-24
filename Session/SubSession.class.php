@@ -38,6 +38,6 @@ class SubSession implements \ZedBoot\Session\SessionInterface
 	}
 	public function clearAll($keyRoot='')
 	{
-		parent->clearAll($this->subPath.'/'.trim($keyRoot,'/'));
+		$this->session->clearAll($this->subPath.'/'.trim($keyRoot,'/'));
 	}
 }
