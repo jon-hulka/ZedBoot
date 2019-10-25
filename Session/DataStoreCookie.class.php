@@ -11,6 +11,7 @@
  * Implementation of CookieInterface using a single DataStore to hold the index.
  */
 namespace ZedBoot\Session;
+use \ZedBoot\Error\ZBError as Err;
 class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 {
 	protected static
@@ -38,15 +39,15 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 	
 	public function getId($create=true,$regenerate=false)
 	{
-		//Ensure that this won't happen on a non-secure connection
-		if(!(
-			(!empty($_SERVER['HTTPS']) && 'off' != $_SERVER['HTTPS']) ||
-			(array_key_exists('SERVER_PORT', $_SERVER) && 443 === (int)$_SERVER['SERVER_PORT']) ||
-			(array_key_exists('HTTP_X_FORWARDED_SSL', $_SERVER) && 'on' === $_SERVER['HTTP_X_FORWARDED_SSL']) ||
-			(array_key_exists('HTTP_X_FORWARDED_PROTO', $_SERVER) && 'https' === $_SERVER['HTTP_X_FORWARDED_PROTO'])
-		)) throw new Err('Session insecure: not using HTTPS.');
-		if($this->id===null || $regenerate)
+		if($this->id===null && $create || $regenerate)
 		{
+			//Ensure that this won't happen on a non-secure connection
+			if(!(
+				(!empty($_SERVER['HTTPS']) && 'off' != $_SERVER['HTTPS']) ||
+				(array_key_exists('SERVER_PORT', $_SERVER) && 443 === (int)$_SERVER['SERVER_PORT']) ||
+				(array_key_exists('HTTP_X_FORWARDED_SSL', $_SERVER) && 'on' === $_SERVER['HTTP_X_FORWARDED_SSL']) ||
+				(array_key_exists('HTTP_X_FORWARDED_PROTO', $_SERVER) && 'https' === $_SERVER['HTTP_X_FORWARDED_PROTO'])
+			)) throw new Err('Session insecure: not using HTTPS.');
 			$this->load($create,$regenerate);
 		}
 		return $this->id;

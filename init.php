@@ -26,10 +26,10 @@
  *     This is where request processing starts.
  * 
  * at the time that response is loaded, the following dependency keys will be available:
- *   - request:routeData     - as returned by urlRouter->getRouteData()
- *   - request:baseURL       - as returned by urlRouter->getBaseURL()
- *   - request:urlParts      - as returned by urlRouter->getURLParts()
- *   - request:urlParameters - as returned by urlRouter->getURLParameters()
+ *   - <boot config key>:routeData     - as returned by urlRouter->getRouteData()
+ *   - <boot config key>:baseURL       - as returned by urlRouter->getBaseURL()
+ *   - <boot config key>:urlParts      - as returned by urlRouter->getURLParts()
+ *   - <boot config key>:urlParameters - as returned by urlRouter->getURLParameters()
  * 
  * Configuration files will also have access to any shared parameters defined in the boot config script $parameters['sharedParameters']
  * These will be available as variables. For example - if the boot config script has these parameters:
@@ -111,10 +111,10 @@ function zbInit($configDir,$bootConfigKey,$zbClassPath)
 		if(!array_key_exists('response',$routeData)) throw new Err('response dependency not specified for route '.$baseURL);
 
 		$dependencyIndex->addParameters([
-			'request:routeData'=>$routeData,
-			'request:baseURL'=>$baseURL,
-			'request:urlParts'=>$router->getURLParts(),
-			'request:urlParameters'=>$router->getURLParameters(),
+			$bootConfigKey.':routeData'=>$routeData,
+			$bootConfigKey.':baseURL'=>$baseURL,
+			$bootConfigKey.':urlParts'=>$router->getURLParts(),
+			$bootConfigKey.':urlParameters'=>$router->getURLParameters(),
 		]);
 
 		//Get the request handler

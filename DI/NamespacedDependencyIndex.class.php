@@ -22,7 +22,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		$configLoader,
 		$currentNamespace=null,
 		$dependencyIndex,
-		$loadedConfigurations=array(),
+		$loadedConfigurations=[],
 		$configPath;
 	/**
 	 * @param DependencyConfigLoader $configLoader for loading configuration files
@@ -42,7 +42,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 	{
 		if(!empty($this->currentNamespace))
 		{
-			$namespaced=array();
+			$namespaced=[];
 			foreach($parameters as $id=>$param) $namespaced[$this->currentNamespace.':'.$id]=$param;
 			$parameters=$namespaced;
 		}
@@ -90,7 +90,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 	}
 	protected function namespaceArgs(array $args)
 	{
-		$namespaced=array();
+		$namespaced=[];
 		foreach($args as $k=>$arg)
 		{
 			if(is_array($arg))
