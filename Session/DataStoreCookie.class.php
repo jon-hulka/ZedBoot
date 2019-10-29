@@ -39,7 +39,8 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 	
 	public function getId($create=true,$regenerate=false)
 	{
-		if($this->id===null && $create || $regenerate)
+		if($regenerate) $this->id=null;
+		if($this->id===null)
 		{
 			//Ensure that this won't happen on a non-secure connection
 			if(!(
@@ -53,6 +54,9 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 		return $this->id;
 	}
 	
+	/**
+	 * When using this, it is a good idea to clear or expire any session data at the same time.
+	 */
 	public function reset()
 	{
 		$cookie=null;
@@ -70,7 +74,7 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 			$cookieId=$_COOKIE[$this->name];
 //Enter critical section
 			$index=$this->prepIndex($this->indexDS->lockAndRead());
-			if(array_key_exists($index['by_cookie'][$cookieId]))
+			if(array_key_exists($cookieId,$index['by_cookie']))
 			{
 				//Expire the cookie, but keep it in the index.
 				//gc will take care of it, and for security reasons,
@@ -99,16 +103,7 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 //Install random_compat if this breaks
 		$v.=random_bytes(48).time();
 		//Make sure keys are never full numeric by prepending a character
-		return 's'.hash('whirlpool',$v);
-	}
-
-	protected function createCookie()
-	{
-//Enter critical section
-		$index=$this->prepIndex($this->indexDS->lockAndRead());
-		$this->helpCreate($index);
-//Exit critical section
-		$this->indexDS->writeAndUnlock($index);
+		return 'c'.hash('whirlpool',$v);
 	}
 	
 	protected function helpCreate(&$index)
@@ -125,25 +120,29 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 		$this->setCookie($cookieId,time()+$this->expireSeconds);
 	}
 
+	/**
+	 * $this->id will be set to internal cookie id or null
+	 */
 	protected function load($create,$regenerate=false)
 	{
+		//Assuming this is first time loading or we are regenerating
 		$cookieId=null;
 		$cookie=null;
 		$ds=null;
-		$this->id=null;
 		$now=time();
-		if(empty($_COOKIE[$this->name]) && $create)
+		if(empty($_COOKIE[$this->name]))
 		{
+			if($create)
+			{
 //Enter critical section
-			$index=$this->prepIndex($this->indexDS->lockAndRead());
-			$this->helpCreate($index);
+				$index=$this->prepIndex($this->indexDS->lockAndRead());
+				$this->helpCreate($index);
 //Exit critical section
-			$this->indexDS->writeAndUnlock($index);
+				$this->indexDS->writeAndUnlock($index);
+			}
 		}
-		
-		if($this->id===null && !empty($_COOKIE[$this->name]))
+		else
 		{
-			//Client has sent a cookie
 			$cookieId=$_COOKIE[$this->name];
 //Enter critical section
 			$index=$this->prepIndex($this->indexDS->lockAndRead());
@@ -192,9 +191,10 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 			reset($byCookie);
 			$cookieId=key($byCookie);
 			$params=array_shift($byCookie);
-			//Keys are kept in the index for double the expiry period
-			//as a safeguard to ensure that they don't get reused too
-			//quickly after expiry in case there is some residual data
+			//Keys are kept in the index for double the expiry period.
+			//This is a safeguard; it ensures that they don't get reused
+			//too quickly after expiry in case there is some residual
+			//data. (it prevents data leaking into another session)
 			if($params['expiry']+$this->expireSeconds<$now)
 			{
 				unset($byId[$params['id']]);
