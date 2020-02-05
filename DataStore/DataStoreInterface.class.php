@@ -15,27 +15,27 @@
 namespace ZedBoot\DataStore;
 interface DataStoreInterface
 {
-	function lockAndRead();
-	function writeAndUnlock($data);
-	function lock();
+	public function lockAndRead();
+	public function writeAndUnlock($data);
+	public function lock();
 	/**
 	 * Should throw an exception if data store has not been locked
 	 * @return mixed data, null if no data has been written
 	 */
-	function read();
+	public function read();
 	/**
 	 * Should throw an exception if data store has not been locked
 	 * @param mixed $data
 	 */
-	function write($data);
-	function unlock();
+	public function write($data);
+	public function unlock();
 	/**
 	 * lock, read, and unlock
 	 * @return mixed data
 	 */
-	function quickRead();
+	public function quickRead();
 	/**
 	 * lock, write, and unlock
 	 */
-	function quickWrite($data);
+	public function quickWrite($data);
 }
