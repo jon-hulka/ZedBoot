@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     DI
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2017, 2018, Jonathan Hulka
+ * @copyright   Copyright (c) 2017 - 2020, Jonathan Hulka
  */
 
 /**
@@ -19,5 +19,5 @@ interface DependencyLoaderInterface
 	 * @param string|null $type optional expected result type, could be class name or any expected result from gettype()
 	 * @return mixed loaded dependency
 	 */
-	public function getDependency($id,$type=null);
+	public function getDependency(String $id,String $type=null);
 }

@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     DI
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2018, Jonathan Hulka
+ * @copyright   Copyright (c) 2018 - 2020, Jonathan Hulka
  */
 namespace ZedBoot\DI;
 use \ZedBoot\Error\ZBError as Err;
@@ -48,7 +48,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		}
 		$this->dependencyIndex->addParameters($parameters);
 	}
-	public function addService($id,$className,array $arguments=null,$singleton=true)
+	public function addService(string $id,string $className,array $arguments=null,bool $singleton=true)
 	{
 		if(!empty($this->currentNamespace))
 		{
@@ -57,17 +57,41 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		}
 		$this->dependencyIndex->addService($id,$className,$arguments,$singleton);
 	}
-	public function addFactoryService($id,$factoryId,$function,array $arguments=null,$singleton=true)
+	public function addFactoryService(string $id,string $factoryId,string $function,array $arguments=null,bool $singleton=true)
 	{
 		if(!empty($this->currentNamespace))
 		{
 			$id=$this->currentNamespace.':'.$id;
+			//If the factory is local append its namespace
 			if(false===strpos($factoryId,':')) $factoryId=$this->currentNamespace.':'.$factoryId;
 			if($arguments!==null) $arguments=$this->namespaceArgs($arguments);
 		}
 		$this->dependencyIndex->addFactoryService($id,$factoryId,$function,$arguments,$singleton);
 	}
-	public function getDependencyDefinition($id)
+	public function addSetterInjection(string $serviceId, string $function, array $arguments)
+	{
+		if(!empty($this->currentNamespace))
+		{
+			if(!empty($this->currentNamespace))
+			{
+				//If the service is local append its namespace
+				if(false===strpos($serviceId,':')) $serviceId=$this->currentNamespace.':'.$serviceId;
+				$arguments=$this->namespaceArgs($arguments);
+			}
+		}
+		$this->dependencyIndex->addSetterInjection($serviceId,$function,$arguments);
+	}
+	public function getDependencyDefinition(string $id)
+	{
+		$this->checkNamespace($id);
+		return $this->dependencyIndex->getDependencyDefinition($id);
+	}
+	public function getSetterInjections(string $serviceId)
+	{
+		$this->checkNamespace($serviceId);
+		return $this->dependencyIndex->getSetterInjections($serviceId);
+	}
+	protected function checkNamespace(string $id)
 	{
 		$parts=explode(':',$id);
 		if(count($parts)>1)
@@ -80,13 +104,12 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 			{
 				//As parameters, services, and factory services are added,
 				//$this->currentNamespace will be applied to them
-				$this->currentNamespace=$ns;
+				$this->currentNamespace=$ns; //!! KEEP THIS !! it affects the call to configLoader->loadConfig()
 				$this->configLoader->loadConfig($this,$path);
 				$this->currentNamespace=null;
 				$this->loadedConfigurations[]=$path;
 			}
 		}
-		return $this->dependencyIndex->getDependencyDefinition($id);
 	}
 	protected function namespaceArgs(array $args)
 	{

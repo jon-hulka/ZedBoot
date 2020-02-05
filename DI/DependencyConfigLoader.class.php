@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     DI
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2017, 2018, Jonathan Hulka
+ * @copyright   Copyright (c) 2017 - 2020 Jonathan Hulka
  */
 
 /**
@@ -34,11 +34,12 @@ class DependencyConfigLoader
 		$this->configParameters=$configParameters;
 	}
 	/**
-	 * The config file can have up to four arrays:
-	 *  - $parameters - id => value pairs
-	 *  - $services - id => array(className, optional arguments array, optional singleton boolean)
-	 *  - $factoryServices - id => array(factory id, factory function name, optional arguments array, optional singleton boolean)
+	 * The config file can have any of the following:
+	 *  - $parameters - [id => value, ...]
+	 *  - $services - [id => [className, optional arguments array, optional singleton boolean], ...]
+	 *  - $factoryServices - [id => [factory id, factory function name, optional arguments array, optional singleton boolean], ...]
 	 *  - $includes - paths (absolute or relative) to config files that will be loaded as if their contents belong to the script at $path
+	 *  - $setterInjections - [['id'=><dependency id>,'function'=><function name>,'args'=><arguments array>]]
 	 * For more details, see DependencyIndexInterface
 	 * @param string $path file to load
 	 */
@@ -50,7 +51,7 @@ class DependencyConfigLoader
 		$includes=null;
 		if(!file_exists($path)) throw new Err('Config file '.$path.' not found.');
 		$cf=static::$configFunction;
-		$cf($path,$parameters,$services,$factoryServices,$includes,$this->configParameters);
+		$cf($path,$parameters,$services,$factoryServices,$includes,$setterInjections,$this->configParameters);
 		if(!empty($parameters))
 		{
 			if(!is_array($parameters)) throw new Err('$parameters is not an array in config file '.$path.'.');
@@ -89,6 +90,11 @@ class DependencyConfigLoader
 				$this->loadConfig($dependencyIndex,$includePath);
 			}
 		}
+		if(!empty($setterInjections))
+		{
+			if(!is_array($setterInjections)) throw new Err('$setterInjections is not an array in config file '.$path.'.');
+			$this->addSetterInjections($dependencyIndex, $setterInjections);
+		}
 	}
 	protected function addServices($dependencyIndex,$services,$path)
 	{
@@ -123,11 +129,22 @@ class DependencyConfigLoader
 			$dependencyIndex->addFactoryService($id,$factoryId,$function,$args,$singleton);
 		}
 	}
+	protected function addSetterInjections($dependencyIndex, $setterInjections)
+	{
+		foreach($setterInjections as $params)
+		{
+			if(!array_key_exists('id',$params) || !array_key_exists('function',$params) || !array_key_exists('args',$params))
+			{
+				throw new Err('$setterInjections items must have id, function, and args');
+			}
+			$dependencyIndex->addSetterInjection($params['id'],$params['function'],$params['args']);
+		}
+	}
 }
 //Config fuction is defined outside the DependencyConfigLoader's private scope, keeping it insulated from the configuration file
-DependencyConfigLoader::setConfigFunction(function($__path,&$parameters,&$services,&$factoryServices,&$includes,Array $configParameters)
+DependencyConfigLoader::setConfigFunction(function($__path,&$parameters,&$services,&$factoryServices,&$includes,&$setterInjections,Array $configParameters)
 {
-	foreach(array('__path','parameters','services','factoryServices','includes') as $k) if(array_key_exists($k,$configParameters)) throw new Err('\''.$k.'\' cannot be a key in $configParameters');
+	foreach(array('__path','parameters','services','factoryServices','includes','setterInjections') as $k) if(array_key_exists($k,$configParameters)) throw new Err('\''.$k.'\' cannot be a key in $configParameters');
 	unset($k);
 	extract($configParameters);
 	include $__path;

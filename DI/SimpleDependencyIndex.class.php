@@ -4,47 +4,63 @@
  * @license     GNU General Public License, version 3
  * @package     DI
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2018, Jonathan Hulka
+ * @copyright   Copyright (c) 2018 - 2020, Jonathan Hulka
  */
 namespace ZedBoot\DI;
 use \ZedBoot\Error\ZBError as Err;
 class SimpleDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 {
 	protected
-		$definitions=array();
+		$definitions=[],
+		$setterInjections=[];
 	public function addParameters(array $parameters)
 	{
-		foreach($parameters as $id=>$def) $this->addDefinition($id,array(
+		foreach($parameters as $id=>$def) $this->addDefinition($id,[
 			'type'=>'parameter',
 			'value'=>$def
-		));
+		]);
 	}
-	public function addService($id,$className,array $arguments=null,$singleton=true)
+	public function addService(string $id,string $className,array $arguments=null,bool $singleton=true)
 	{
-		if(empty($arguments)) $arguments=array();
-		$this->addDefinition($id,array(
+		if(empty($arguments)) $arguments=[];
+		$this->addDefinition($id,[
 			'type'=>'service',
 			'class_name'=>$className,
 			'args'=>$arguments,
 			'singleton'=>$singleton
-		));
+		]);
 	}
-	public function addFactoryService($id,$factoryId,$function,array $arguments=null,$singleton=true)
+	public function addFactoryService(string $id,string $factoryId,string $function,array $arguments=null,bool $singleton=true)
 	{
-		if(empty($arguments)) $arguments=array();
-		$this->addDefinition($id,array(
+		if(empty($arguments)) $arguments=[];
+		$this->addDefinition($id,[
 			'type'=>'factory service',
 			'factory_id'=>$factoryId,
 			'function'=>$function,
 			'args'=>$arguments,
 			'singleton'=>$singleton
-		));
+		]);
 	}
-	public function getDependencyDefinition($id)
+	public function addSetterInjection(string $serviceId, string $function, array $arguments)
+	{
+		if(!array_key_exists($serviceId,$this->setterInjections)) $this->setterInjections[$serviceId]=[];
+		$this->setterInjections[$serviceId][]=['function'=>$function,'args'=>$arguments];
+	}
+	public function getDependencyDefinition(string $id)
 	{
 		if(!array_key_exists($id,$this->definitions))
 			throw new Err('Attempt to get undefined dependency: '.json_encode($id).'.');
 		return $this->definitions[$id];
+	}
+	public function getSetterInjections(string $serviceId)
+	{
+		$result=null;
+		if(array_key_exists($serviceId,$this->setterInjections))
+		{
+			$result=$this->setterInjections[$serviceId];
+		}
+		else $result=[];
+		return $result;
 	}
 	protected function addDefinition($id,$definition)
 	{

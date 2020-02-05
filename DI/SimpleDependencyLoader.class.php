@@ -5,25 +5,13 @@
  * @license     GNU General Public License, version 3
  * @package     DI
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2017, 2018, Jonathan Hulka
+ * @copyright   Copyright (c) 2017 - 2020, Jonathan Hulka
  */
 
 /**
  * Dependency loader implementation
  * Provides a simple implementation of DependencyLoaderInterface
  */
-/*
-To test:
-* getFactoryService
-* circular dependencies
-*  - service -> service
-*  - service -> factory -> service
-*  - factory -> factory
-* id conflicts
-* factory is not an object
-* deeply nested errors involving services, factory services and parameters showing dependency path in error messages
-* nested arguments
-*/
 namespace ZedBoot\DI;
 use \ZedBoot\Error\ZBError as Err;
 class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
@@ -45,14 +33,14 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		];
 	protected
 		$dependencyIndex=null,
-		$singletons=array();
+		$singletons=[];
 	public function __construct(\ZedBoot\DI\DependencyIndexInterface $dependencyIndex)
 	{
 		$this->dependencyIndex=$dependencyIndex;
 	}
-	public function getDependency($id,$type=null)
+	public function getDependency(String $id,String $type=null)
 	{
-		$result=$this->loadDependency($id,array());
+		$result=$this->loadDependency($id,[]);
 		if(!empty($type))
 		{
 			$t=gettype($result);
@@ -67,28 +55,44 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		}
 		return $result;
 	}
-	protected function loadDependency($id,array $dependencyChain)
+	protected function loadDependency(String $id,array $dependencyChain)
 	{
 		$result=false;
-		if(array_key_exists($id,$this->singletons))
+		try
 		{
-			//Dependency has already been loaded
-			$result=$this->singletons[$id];
-		}
-		else
-		{
-			$def=$this->dependencyIndex->getDependencyDefinition($id);
-			switch($def['type'])
+			if(array_key_exists($id,$this->singletons))
 			{
-				case 'parameter':
-					$result=$def['value'];
-					break;
-				case 'service':
-					$result=$this->loadService($id,$def,$dependencyChain);
-					break;
-				case 'factory service':
-					$result=$this->loadFactoryService($id,$def,$dependencyChain);
-					break;
+				//Dependency has already been loaded
+				$result=$this->singletons[$id];
+			}
+			else
+			{
+				$def=$this->dependencyIndex->getDependencyDefinition($id);
+				switch($def['type'])
+				{
+					case 'parameter':
+						$result=$def['value'];
+						break;
+					case 'service':
+						$result=$this->loadService($id,$def,$dependencyChain);
+						break;
+					case 'factory service':
+						$result=$this->loadFactoryService($id,$def,$dependencyChain);
+						break;
+				}
+			}
+		}
+		catch(\Exception $e)
+		{
+			if($e instanceof \Zedboot\DI\DependencyLoaderException)
+			{
+				throw $e;
+			}
+			else
+			{
+				$chain=$dependencyChain;
+				$chain[]=$id;
+				throw new \ZedBoot\DI\DependencyLoaderException('Error loading '.$id,0,$e,$chain);
 			}
 		}
 		return $result;
@@ -98,10 +102,10 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 	 * @param $id
 	 * @param array $dependencyChain dependencies for the current branch of the dependency tree. Used to detect circular dependencies.
 	 */
-	protected function loadService($id,array $def,array $dependencyChain)
+	protected function loadService(String $id,array $def,array $dependencyChain)
 	{
 		$result=false;
-		$argValues=array();
+		$argValues=[];
 		//Make sure this service is not its own ancestor
 		if(false!==(array_search($id,$dependencyChain,true)))
 			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$id);
@@ -112,28 +116,43 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		$cn=$def['class_name'];
 		$reflect=new \ReflectionClass($cn);
 		$result=$reflect->newInstanceArgs($argValues);
+		if(is_object($result)) $this->checkSetterInjection($result,$id);
 		if($def['singleton']) $this->singletons[$id]=$result;
 		return $result;
 	}
 	
-	protected function loadFactoryService($id,array $def,array $dependencyChain)
+	protected function loadFactoryService(String $id,array $def,array $dependencyChain)
 	{
 		$result=false;
 		$factory=null;
-		$argValues=array();
+		$argValues=[];
 		$factoryId=$def['factory_id'];
 		if(false!==(array_search($factoryId,$dependencyChain,true))) throw new Err('Circular dependency on factory service '.json_encode($id));
 		$factory=$this->loadDependency($factoryId,$dependencyChain);
 		if(!is_object($factory)) throw new Err('Factory '.json_encode($id).' is not an object.');
 		$argValues=$this->extractArguments($def['args'],$dependencyChain);
-		$result=call_user_func_array(array($factory,$def['function']),$argValues);
+//		$result=call_user_func_array([$factory,$def['function']],$argValues);
+		$result=([$factory,$def['function']])(...$argValues);
+		if(is_object($result)) $this->checkSetterInjection($result,$id);
 		if($def['singleton']) $this->singletons[$id]=$result;
 		return $result;
 
 	}
-	protected function extractArguments(array $args, array $dependencyChain, $preserveKeys=false)
+	
+	protected function checkSetterInjection($service,String $id)
 	{
-		$argValues=array();
+		$setterInjections=$this->dependencyIndex->getSetterInjections($id);
+		foreach($setterInjections as $def)
+		{
+			$argValues=$this->extractArguments($def['args'],[]);
+//			call_user_func_array([$service,$def['function']],$argValues);
+			([$service,$def['function']])(...$argValues);
+		}
+	}
+
+	protected function extractArguments(array $args, array $dependencyChain, bool $preserveKeys=false)
+	{
+		$argValues=[];
 		$v=null;
 		foreach($args as $k=>$arg)
 		{
@@ -150,7 +169,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 			{
 				$v=$this->loadDependency($arg,$dependencyChain);
 			}
-			else throw new Err('Loading '.implode(' > ',$dependencyChain).': Expected argument to be one of dependecy id (String), Array, NULL, or scalar constant (numeric, bool); got '.gettype($arg).'.');
+			else throw new Err('Expected argument to be one of: dependecy id (String), Array, NULL, or scalar constant (numeric, bool); got '.gettype($arg));
 			if($preserveKeys)
 			{
 				$argValues[$k]=$v;
