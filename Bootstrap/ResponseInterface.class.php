@@ -24,11 +24,11 @@ interface ResponseInterface
 	/**
 	 * @return Array 0 or more arrays of header parameters array(array(<header>,<optional replace>,<optional response code>), ...)
 	 */
-	public function getHeaders();
+	public function getHeaders(): array;
 
 	/**
 	 * Typically the view will be invoked here.
 	 * @return String page response
 	 */
-	public function getResponseText();
+	public function getResponseText(): string;
 }

@@ -8,7 +8,6 @@
  * 
  * Decorates a url router with authentication support
  * if route data contains 'byRole' => array(<role>=>array(...), ...) and a user is logged in with one of the specified roles, the first appropriate subroute will be selected
- * To specify any logged in user, use '*' for the role key
  * Subroute will be selected in the order specified
  * if no subroute is selected, any unused 'byRole' options will be stripped from the route data
  */
@@ -18,7 +17,6 @@ class AuthenticatedURLRouter implements \ZedBoot\Bootstrap\URLRouterInterface
 {
 	protected
 		$routeData=null,
-		$error=null,
 		$router=null,
 		$loggedUser=null;
 	public function __construct(\ZedBoot\Bootstrap\URLRouterInterface $router, \ZedBoot\Auth\LoggedUserInterface $loggedUser)
@@ -26,8 +24,6 @@ class AuthenticatedURLRouter implements \ZedBoot\Bootstrap\URLRouterInterface
 		$this->router=$router;
 		$this->loggedUser=$loggedUser;
 	}
-	
-	public function getError(){ return $this->error; }
 	
 	public function parseURL($url)
 	{
@@ -38,10 +34,10 @@ class AuthenticatedURLRouter implements \ZedBoot\Bootstrap\URLRouterInterface
 		$this->routeData=$this->parseRouteData($routeData);
 	}
 	
-	public function getBaseURL(){ return $this->router->getBaseURL(); }
-	public function getURLParameters(){ return $this->router->getURLParameters(); }
-	public function getURLParts(){ return $this->router->getURLParts(); }
-	public function getRouteData(){ return $this->routeData; }
+	public function getBaseURL(): ?string{ return $this->router->getBaseURL(); }
+	public function getURLParameters(): ?array{ return $this->router->getURLParameters(); }
+	public function getURLParts(): ?array{ return $this->router->getURLParts(); }
+	public function getRouteData(): ?array{ return $this->routeData; }
 	
 	protected function parseRouteData($routeData)
 	{
@@ -56,7 +52,6 @@ class AuthenticatedURLRouter implements \ZedBoot\Bootstrap\URLRouterInterface
 		if($subroute===null)
 		{
 			//End condition - no subroute to parse
-			unset($routeData['https']);
 			unset($routeData['byRole']);
 			$result=$routeData;
 		}
@@ -67,12 +62,11 @@ class AuthenticatedURLRouter implements \ZedBoot\Bootstrap\URLRouterInterface
 	protected function parseRoles($byRole)
 	{
 		$result=null;
-		$user=null;
-		if(false===($user=$this->loggedUser->getUser())) throw new \Exception('System error: failed to retreived logged user.');
-		if($user!==null && is_array($user['roles']))
+		$user=$this->loggedUser->getUser();
+		if($user)
 		{
-			$roles=$user['roles'];
-			foreach($byRole as $k=>$subroute) if($k==='*' || false!==array_search($k,$roles))
+			$roles=array_key_exists('roles',$user)?is_array($user['roles'])?$user['roles']:[]:[];
+			foreach($byRole as $k=>$subroute) if(false!==array_search($k,$roles))
 			{
 				if(!is_array($subroute)) throw new \Err('Expected array for \''.$k.'\' subroute.');
 				$result=$subroute;

@@ -16,19 +16,19 @@ interface URLRouterInterface
 {
 	public function parseURL($url);
 	/**
-	 * @return String the url substring that selected the route (if the route 'foo/bar' was selected for the url 'foo/bar/baz', 'foo/bar' would be returned)
+	 * @return string the url substring that selected the route (if the route 'foo/bar' was selected for the url 'foo/bar/baz', 'foo/bar' would be returned)
 	 */
-	public function getBaseURL();
+	public function getBaseURL(): ?string;
 	/**
-	 * @return Array url segments not used in selecting the route (if the route 'foo' was selected for the url 'foo/bar/baz', ['bar','baz'] would be returned)
+	 * @return array url segments not used in selecting the route (if the route 'foo' was selected for the url 'foo/bar/baz', ['bar','baz'] would be returned)
 	 */
-	public function getURLParameters();
+	public function getURLParameters(): ?array;
 	/**
-	 * @return Array same as getBaseURL, except split into segments (if getBaseURL returns 'foo/bar', getURLParts returns ['foo','bar'])
+	 * @return array same as getBaseURL, except split into segments (if getBaseURL returns 'foo/bar', getURLParts returns ['foo','bar'])
 	 */
-	public function getURLParts();
+	public function getURLParts(): ?array;
 	/**
-	 * @return Array data specific to the route (typically this will refer to a ResponseInterface implementation to handle the request)
+	 * @return array data specific to the route (typically this will refer to a ResponseInterface implementation to handle the request)
 	 */
-	public function getRouteData();
+	public function getRouteData(): ?array;
 }

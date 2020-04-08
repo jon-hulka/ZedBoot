@@ -30,10 +30,10 @@ class SimpleURLRouter implements \ZedBoot\Bootstrap\URLRouterInterface
 		if(!array_key_exists($routeKey,$this->routes)) throw new Err('Route not found.');
 		$this->routeData=$this->routes[$routeKey];
 	}
-	public function getRouteData(){ return $this->routeData; }
-	public function getBaseURL(){ return $this->baseURL; }
-	public function getURLParameters(){ return $this->urlParameters; }
-	public function getURLParts(){ return $this->urlParts; }
+	public function getRouteData(): ?array{ return $this->routeData; }
+	public function getBaseURL(): ?string{ return $this->baseURL; }
+	public function getURLParameters(): ?array{ return $this->urlParameters; }
+	public function getURLParts(): ?array{ return $this->urlParts; }
 	private function parseRoute($routeString)
 	{
 		$result=null;
