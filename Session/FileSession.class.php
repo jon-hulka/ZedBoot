@@ -40,7 +40,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 	 *   - and garbage collection - inactive datastores or sessions will be cleaned up some time after $expiry seconds
 	 * @param $gcChance int garbage collection probability (calculated as 1 in $gcChance - default 500), if 0, garbage collection will not run
 	 */
-	public function __construct($savePath, $sessionId, $expiry=null, $gcChance=null)
+	public function __construct(string $savePath, string $sessionId, int $expiry=null, int $gcChance=null)
 	{
 		$this->savePath=$savePath;
 		$this->sessionId=$sessionId;
@@ -53,7 +53,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 	{
 		if(!is_numeric($expiry) || ($expiry<30 && $expiry!==0)) throw new Err('Invalid expiry: '.json_encode($expiry).', must be 0 or at least 30 seconds.');
 	}
-	public function getDataStore($key,$expiry=null,$forceCreate=true)
+	public function getDataStore(string $key,int $expiry=null, bool $forceCreate=true): ? \ZedBoot\DataStore\DataStoreInterface
 	{
 		$result=null;
 		$dataStore=null;
@@ -70,7 +70,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$result=$this->getExpirableDataStore($keyPath,$expiry,$forceCreate);
 		return $result;
 	}
-	public function clearAll($keyRoot='')
+	public function clearAll(string $keyRoot='')
 	{
 		$metaData=null;
 		$time=time();
@@ -195,7 +195,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		if(count($pathTree)>0)
 		{
 			//Clear child directories
-			foreach($pathTree as $dir=>$subTree) $hasFiles=$hasFiles||$this->clearEmptyPaths($pathTree.'/'.$dir,$subTree);
+			foreach($pathTree as $dir=>$subTree) $hasFiles=$hasFiles||$this->clearEmptyPaths($path.'/'.$dir,$subTree);
 		}
 		if(!$hasFiles) $hasFiles=count(glob($path.'/{,.}[!.,!..]*', GLOB_BRACE))>0;
 		if(!$hasFiles) rmdir($path);

@@ -26,17 +26,17 @@ class SubSession implements \ZedBoot\Session\SessionInterface
 	 * @param $session \ZedBoot\Session\SessionInterface
 	 * @param $subPath String namespace to be prepended to every key
 	 */
-	public function __construct(\ZedBoot\Session\SessionInterface $session,$subPath)
+	public function __construct(\ZedBoot\Session\SessionInterface $session, string $subPath)
 	{
 		$this->session=$session;
 		$this->subPath=trim($subPath,'/');
 	}
-	public function getDataStore($key,$expiry=null,$forceCreate=true)
+	public function getDataStore(string $key,int $expiry=null, bool $forceCreate=true): ? \ZedBoot\DataStore\DataStoreInterface
 	{
 		if(empty($expiry)) $expiry=$this->expiry;
 		return $this->session->getDataStore($this->subPath.'/'.trim($key,'/'),$expiry,$forceCreate);
 	}
-	public function clearAll($keyRoot='')
+	public function clearAll(string $keyRoot='')
 	{
 		$this->session->clearAll($this->subPath.'/'.trim($keyRoot,'/'));
 	}

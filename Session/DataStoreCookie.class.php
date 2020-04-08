@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     Session
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2019 Jonathan Hulka
+ * @copyright   Copyright (c) 2019 - 2020 Jonathan Hulka
  */
 
 /**
@@ -17,27 +17,34 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 	protected static
 		$gcMax=10; //number of indices to be cleaned up each time a cookie is created
 	protected
-		$id=null,
-		$name=null,
-		$expireSeconds=null,
-		$indexDS=null;
+		$indexDS,
+		$name,
+		$expireSeconds,
+		$cookieStringLength,
+		$internalIdStringLength,
+		$id=null;
 
 	public function __construct(
-		$dataStore,
-		$name,
-		$expireSeconds=300)
+		\ZedBoot\DataStore\DataStoreInterface $dataStore,
+		string $name,
+		int $expireSeconds=300,
+		int $cookieStringLength=128,
+		int $internalIdStringLength=32)
 	{
 		$this->indexDS=$dataStore;
 		$this->name=$name;
 		$this->expireSeconds=$expireSeconds;
+		$this->cookieStringLength=$cookieStringLength;
+		$this->internalIdStringLength=$internalIdStringLength;
 	}
 	
-	public function setClientId($id)
+	public function setClientId(string $id)
 	{
 		$_COOKIE[$this->name]=$id;
+		$this->id=null;
 	}
 	
-	public function getId($create=true,$regenerate=false)
+	public function getId(bool $create=true,bool $regenerate=false): ?string
 	{
 		if($regenerate) $this->id=null;
 		if($this->id===null)
@@ -85,6 +92,7 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 			$this->indexDS->writeAndUnlock($index);
 			$this->setCookie(null,-1);
 		}
+		$this->id=null;
 	}
 	
 	protected function prepIndex($data)
@@ -95,15 +103,30 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 		return $data;
 	}
 
-	protected function getRandom()
+	protected function getRandom($length)
 	{
-		$v='';
-		$parts=explode('.',$_SERVER['REMOTE_ADDR']);
-		foreach($parts as $part) $v.=substr('0'.dechex($part),-2);
-//Install random_compat if this breaks
-		$v.=random_bytes(48).time();
-		//Make sure keys are never full numeric by prepending a character
-		return 'c'.hash('whirlpool',$v);
+		$result='';
+		do
+		{
+			//Discard the last 3 bytes, because bit packing makes the last few characters less random
+			$result.=substr
+			(
+				//Discard non-alhpanumeric characters
+				str_replace
+				(
+					['/','+','='],'',
+					base64_encode
+					(
+						//Base 64 produces 4 characters for each 3 bytes, so most times this will give enough bytes in a single pass
+						random_bytes(($length-strlen($result))*0.8+4)
+					)
+				),
+				0,
+				-3
+			);
+		}while(strlen($result)<$length);
+		//Prepend a character to ensure there is never a completely numeric result
+		return 'c'.substr($result,0,$length);
 	}
 	
 	protected function helpCreate(&$index)
@@ -112,12 +135,16 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 		$cookieId=null;
 		$this->gc($index);
 		//Find a unique internal id
-		do{ $internalId=$this->getRandom(); }while(array_key_exists($internalId,$index['by_id']));
-		do{ $cookieId=$this->getRandom(); }while(array_key_exists($cookieId,$index['by_cookie']));
+		do{ $internalId=$this->getRandom($this->internalIdStringLength); }while(array_key_exists($internalId,$index['by_id']));
+		do{ $cookieId=$this->getRandom($this->cookieStringLength); }while(array_key_exists($cookieId,$index['by_cookie']));
 		$index['by_id'][$internalId]=$cookieId;
 		$index['by_cookie'][$cookieId]=['expiry'=>time()+$this->expireSeconds,'id'=>$internalId];
 		$this->id=$internalId;
-		$this->setCookie($cookieId,time()+$this->expireSeconds);
+//		$this->setCookie($cookieId,time()+$this->expireSeconds);
+		//Keep the cookie alive on the client side for one day
+		//If most communication is being done via websocket, the client
+		//may not be checking back via http very often
+		$this->setCookie($cookieId,time()+60*60*24);
 	}
 
 	/**
@@ -155,15 +182,14 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 			{
 				//Valid cookie has been found
 				$byCookie=&$index['by_cookie'];
-				$byId=&$index['by_id'];
 				$this->id=$byCookie[$cookieId]['id'];
 				if($regenerate)
 				{
 					//We need a new cookie, but keep the old internal id
 					$old=$cookieId;
-					do{ $cookieId=$this->getRandom(); }while(array_key_exists($cookieId,$byCookie));
+					do{ $cookieId=$this->getRandom($this->cookieStringLength); }while(array_key_exists($cookieId,$byCookie));
 					$byCookie[$cookieId]=$byCookie[$old];
-					$byId[$this->id]=$cookieId;
+					$index['by_id'][$this->id]=$cookieId;
 					unset($byCookie[$old]);
 				}
 				$exp=time()+$this->expireSeconds;
