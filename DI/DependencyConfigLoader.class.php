@@ -93,7 +93,7 @@ class DependencyConfigLoader
 		if(!empty($setterInjections))
 		{
 			if(!is_array($setterInjections)) throw new Err('$setterInjections is not an array in config file '.$path.'.');
-			$this->addSetterInjections($dependencyIndex, $setterInjections);
+			$this->addSetterInjections($dependencyIndex, $setterInjections, $path);
 		}
 	}
 	protected function addServices($dependencyIndex,$services,$path)
@@ -129,15 +129,15 @@ class DependencyConfigLoader
 			$dependencyIndex->addFactoryService($id,$factoryId,$function,$args,$singleton);
 		}
 	}
-	protected function addSetterInjections($dependencyIndex, $setterInjections)
+	protected function addSetterInjections($dependencyIndex, $setterInjections,$path)
 	{
+		$prefix='Config file '.$path.': setter injections: ';
 		foreach($setterInjections as $params)
 		{
-			if(!array_key_exists('id',$params) || !array_key_exists('function',$params) || !array_key_exists('args',$params))
-			{
-				throw new Err('$setterInjections items must have id, function, and args');
-			}
-			$dependencyIndex->addSetterInjection($params['id'],$params['function'],$params['args']);
+			if(!is_array($params)) throw new Err($prefix.' must be arrays.');
+			if(count($params)<3) throw new Err($prefix.' must have 3 parameters (service id, function name, and function arguments).');
+			if(!is_array($params[2])) throw new Err($prefix.' third parameter (arguments) must be array.');
+			$dependencyIndex->addSetterInjection($params[0],$params[1],$params[2]);
 		}
 	}
 }
