@@ -16,6 +16,8 @@ namespace ZedBoot\DI;
 use \ZedBoot\Error\ZBError as Err;
 class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 {
+/*
+ * 2020-04-09 This appears to be unused - leaving for now in case I am mistaken
 	protected static
 		//Expected results from gettype
 		//Searching is faster on keys rather than values
@@ -31,6 +33,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 			'NULL'=>true,
 			'unknown type'=>true
 		];
+*/
 	protected
 		$dependencyIndex=null,
 		$singletons=[];
@@ -73,6 +76,12 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 					case 'parameter':
 						$result=$def['value'];
 						break;
+					case 'array value':
+						$result=$this->loadArrayValue($id, $def,$dependencyChain);
+						break;
+					case 'object property':
+						$result=$this->loadObjectProperty($id, $def,$dependencyChain);
+						break;
 					case 'service':
 						$result=$this->loadService($id,$def,$dependencyChain);
 						break;
@@ -94,6 +103,71 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 				$chain[]=$id;
 				throw new \ZedBoot\DI\DependencyLoaderException('Error loading '.$id,0,$e,$chain);
 			}
+		}
+		return $result;
+	}
+	
+	/**
+	 * Array values are loaded fresh every time because the sources could be loaded by non-Singleton factories
+	 */
+	protected function loadArrayValue(string $id, array $def, array $dependencyChain)
+	{
+		$result=null;
+		$ne=$def['if_not_exists'];
+		//Make sure this array is not its own ancestor
+		if(false!==(array_search($id,$dependencyChain,true)))
+			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$id);
+		$dependencyChain[]=$id;
+		$arr=$this->loadDependency($def['array_id'], $dependencyChain);
+		if(!is_array($arr)) throw new Err($id.' arrayId: Expected '.$def['array_id'].' to be array, got '.gettype($arr).'.');
+		if(array_key_exists($def['key'],$arr))
+		{
+			$result=$arr[$def['key']];
+		}
+		else if(is_string($ne))
+		{
+			$result=$this->loadDependency($ne, $dependencyChain);
+		}
+		else if(is_array($ne))
+		{
+			$result=$this->extractArguments($ne,$dependencyChain,true,'array element');
+		}
+		else
+		{
+			$result=$ne;
+		}
+		return $result;
+	}
+
+	/**
+	 * Object properties are loaded fresh every time because they could rely on non-Singleton sources
+	 */
+	protected function loadObjectProperty(string $id, array $def, array $dependencyChain)
+	{
+		$result=null;
+		$ne=$def['if_not_exists'];
+		//Make sure this object is not its own ancestor
+		if(false!==(array_search($id,$dependencyChain,true)))
+			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$id);
+		$dependencyChain[]=$id;
+		$obj=$this->loadDependency($def['object_id'], $dependencyChain);
+		if(!is_object($obj)) throw new Err($id.' objectId: Expected '.$def['object_id'].' to be object, got '.gettype($obj).'.');
+		$prop=$def['property'];
+		if(property_exists($obj,$prop))
+		{
+			$result=$obj->$prop;
+		}
+		else if(is_string($ne))
+		{
+			$result=$this->loadDependency($ne, $dependencyChain);
+		}
+		else if(is_array($ne))
+		{
+			$result=$this->extractArguments($ne,$dependencyChain,true,'array element');
+		}
+		else
+		{
+			$result=$ne;
 		}
 		return $result;
 	}
@@ -126,12 +200,16 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		$result=false;
 		$factory=null;
 		$argValues=[];
+		//Make sure this dependency is not its own ancestor
+		if(false!==(array_search($id,$dependencyChain,true)))
+			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$id);
+		$dependencyChain[]=$id;
 		$factoryId=$def['factory_id'];
-		if(false!==(array_search($factoryId,$dependencyChain,true))) throw new Err('Circular dependency on factory service '.json_encode($id));
+		if(false!==(array_search($factoryId,$dependencyChain,true)))
+			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$factoryId);
 		$factory=$this->loadDependency($factoryId,$dependencyChain);
 		if(!is_object($factory)) throw new Err('Factory '.json_encode($id).' is not an object.');
 		$argValues=$this->extractArguments($def['args'],$dependencyChain);
-//		$result=call_user_func_array([$factory,$def['function']],$argValues);
 		$result=([$factory,$def['function']])(...$argValues);
 		if(is_object($result)) $this->checkSetterInjection($result,$id);
 		if($def['singleton']) $this->singletons[$id]=$result;
@@ -145,12 +223,11 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		foreach($setterInjections as $def)
 		{
 			$argValues=$this->extractArguments($def['args'],[]);
-//			call_user_func_array([$service,$def['function']],$argValues);
 			([$service,$def['function']])(...$argValues);
 		}
 	}
 
-	protected function extractArguments(array $args, array $dependencyChain, bool $preserveKeys=false)
+	protected function extractArguments(array $args, array $dependencyChain, bool $preserveKeys=false, $entityName='argument')
 	{
 		$argValues=[];
 		$v=null;
@@ -159,17 +236,17 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 			if(is_array($arg))
 			{
 				//Recursively handle nested arrays
-				$v=$this->extractArguments($arg,$dependencyChain,true);
+				$v=$this->extractArguments($arg,$dependencyChain,true, 'array element');
 			}
-			else if(is_null($arg) || is_numeric($arg)  || is_bool($arg))
-			{
-				$v=$arg;
-			}
-			else if(is_scalar($arg))
+			else if(is_string($arg))
 			{
 				$v=$this->loadDependency($arg,$dependencyChain);
 			}
-			else throw new Err('Expected argument to be one of: dependecy id (String), Array, NULL, or scalar constant (numeric, bool); got '.gettype($arg));
+			else if(is_scalar($arg) || is_null($arg))
+			{
+				$v=$arg;
+			}
+			else throw new Err('Expected '.$entityName.' to be one of: dependency id (string), array, null, or scalar constant, got '.gettype($arg));
 			if($preserveKeys)
 			{
 				$argValues[$k]=$v;

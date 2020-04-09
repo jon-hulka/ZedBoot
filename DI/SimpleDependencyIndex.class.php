@@ -20,6 +20,32 @@ class SimpleDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 			'value'=>$def
 		]);
 	}
+	public function addArrayValue(string $id, string $arrayId, string $arrayKey, $ifNotExists=null)
+	{
+		$this->addDefinition
+		(
+			$id,
+			[
+				'type'=>'array value',
+				'array_id'=>$arrayId,
+				'key'=>$arrayKey,
+				'if_not_exists'=>$ifNotExists
+			]
+		);
+	}
+	public function addObjectProperty(string $id, string $objectId, string $propertyName, $ifNotExists=null)
+	{
+		$this->addDefinition
+		(
+			$id,
+			[
+				'type' => 'object property',
+				'object_id' => $objectId,
+				'property' => $propertyName,
+				'if_not_exists' => $ifNotExists
+			]
+		);
+	}
 	public function addService(string $id,string $className,array $arguments=null,bool $singleton=true)
 	{
 		if(empty($arguments)) $arguments=[];
