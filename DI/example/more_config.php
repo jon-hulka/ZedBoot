@@ -1,0 +1,5 @@
+<?php
+$parameters=
+[
+	'germanGreeting' => 'Hallo'
+];
