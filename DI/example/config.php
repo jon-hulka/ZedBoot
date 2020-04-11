@@ -39,7 +39,7 @@ $parameters =
 	'greetingsObject'=> (object)['french'=>'Bonjour']
 ];
 
-$arrayValues =
+$arrayElements =
 [
 	//Dependency key
 	'spanishGreeting'=>

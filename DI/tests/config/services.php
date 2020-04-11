@@ -1,5 +1,4 @@
 <?php
-global $dependency;
 class Test
 {
 	protected $v;
@@ -16,6 +15,7 @@ class TestInc
 {
 	protected static $current=0;
 	protected $v;
+	public static function reset(){ static::$current=0; }
 	public function __construct(){ $this->v=static::$current++; }
 	public function get(){ return $this->v; }
 }
@@ -28,10 +28,18 @@ class TestCat
 		return implode(', ',$parts);
 	}
 }
+$postProcess=function(string $content)
+{
+	//Reset counter for singleton tests
+	TestInc::reset();
+	return $content;
+};
+
 $configs=
 [
 	'tooMany' =>
 	[
+		'error' => 'services: "tooMany": must have no more than 3 parameters ( className, optional arguments, optional singleton )',
 		'services' =>
 		[
 			'tooMany' => [1,2,3,4]
@@ -39,6 +47,7 @@ $configs=
 	],
 	'tooFew' =>
 	[
+		'error' => 'services: "tooFew": must have at least 1 parameter ( className, optional arguments, optional singleton )',
 		'services' =>
 		[
 			'tooFew' => []
@@ -46,7 +55,7 @@ $configs=
 	],
 	'badName' =>
 	[
-		//className is not a string
+		'error' => 'services: "badName": 1st parameter (className) expected string, got integer',
 		'services' =>
 		[
 			'badName' => [1]
@@ -54,7 +63,7 @@ $configs=
 	],
 	'badArgs' =>
 	[
-		//arguments is not an array
+		'error' => 'services: "badArgs": 2nd parameter (arguments) expected array, got string',
 		'services' =>
 		[
 			'badArgs' => ['Test','test']
@@ -62,7 +71,7 @@ $configs=
 	],
 	'badSingleton' =>
 	[
-		//singleton is not a boolean
+		'error' => 'services: "badSingleton": 3rd parameter (singleton, optional) expected boolean, got string',
 		'services' =>
 		[
 			'badSingleton' => ['Test', ['test'], 'test']
@@ -70,13 +79,21 @@ $configs=
 	],
 	'ok1' =>
 	[
+		'output' => '"OK 1"',
 		'parameters' =>
 		[
 			'v' => 'OK 1'
 		],
 		'services' =>
 		[
-			'svc' => ['Test', ['v'], true]
+			'svc' =>
+			[
+				'Test',
+				[
+					'v'
+				],
+				true
+			]
 		],
 		'factoryServices' =>
 		[
@@ -86,7 +103,8 @@ $configs=
 	'singleton1' =>
 	[
 		//factoryService definition singleton by default
-		//Should output "0, 0, 0"
+		//The sequence will not be incremented
+		'output' => '"0, 0, 0"',
 		'services' =>
 		[
 			'factory' => ['TestFactory'],
@@ -101,7 +119,8 @@ $configs=
 	'singleton2' =>
 	[
 		//factoryService definition explicitly singleton
-		//Should output "0, 0, 0"
+		//The sequence will not be incremented
+		'output' => '"0, 0, 0"',
 		'services' =>
 		[
 			'factory' => ['TestFactory'],
@@ -116,7 +135,8 @@ $configs=
 	'nonSingleton1' =>
 	[
 		//factoryService definition not a singleton
-		//Should output "0, 1, 2"
+		//The sequence will be incremented
+		'output' => '"0, 1, 2"',
 		'services' =>
 		[
 			'factory' => ['TestFactory'],
@@ -131,7 +151,8 @@ $configs=
 	'singleton3' =>
 	[
 		//service definition singleton by default
-		//Should output "0, 0, 0"
+		//The sequence will not be incremented
+		'output' => '"0, 0, 0"',
 		'services' =>
 		[
 			'svc' => ['TestInc'],
@@ -145,7 +166,8 @@ $configs=
 	'singleton4' =>
 	[
 		//service definition explicitly singleton
-		//Should output "0, 0, 0"
+		//The sequence will not be incremented
+		'output' => '"0, 0, 0"',
 		'services' =>
 		[
 			'svc' => ['TestInc'],
@@ -159,7 +181,8 @@ $configs=
 	'nonSingleton2' =>
 	[
 		//service definition not a singleton
-		//Should output "0, 1, 2"
+		//The sequence will be incremented
+		'output' => '"0, 1, 2"',
 		'services' =>
 		[
 			'svc' => ['TestInc',[],false],
@@ -170,6 +193,7 @@ $configs=
 			'nonSingleton2' => ['cat','cat',['svc','svc','svc']]
 		],
 	],
+/*
 	'' =>
 	[
 		'parameters' =>
@@ -194,198 +218,5 @@ $configs=
 		[
 		]
 	],
-	'' =>
-	[
-		'parameters' =>
-		[
-		],
-		'arrayValues' =>
-		[
-		],
-		'objectProperties' =>
-		[
-		],
-		'services' =>
-		[
-		],
-		'factoryServices' =>
-		[
-		],
-		'includes' =>
-		[
-		],
-		'setterInjections' =>
-		[
-		]
-	],
-	'' =>
-	[
-		'parameters' =>
-		[
-		],
-		'arrayValues' =>
-		[
-		],
-		'objectProperties' =>
-		[
-		],
-		'services' =>
-		[
-		],
-		'factoryServices' =>
-		[
-		],
-		'includes' =>
-		[
-		],
-		'setterInjections' =>
-		[
-		]
-	],
-	'' =>
-	[
-		'parameters' =>
-		[
-		],
-		'arrayValues' =>
-		[
-		],
-		'objectProperties' =>
-		[
-		],
-		'services' =>
-		[
-		],
-		'factoryServices' =>
-		[
-		],
-		'includes' =>
-		[
-		],
-		'setterInjections' =>
-		[
-		]
-	],
-	'' =>
-	[
-		'parameters' =>
-		[
-		],
-		'arrayValues' =>
-		[
-		],
-		'objectProperties' =>
-		[
-		],
-		'services' =>
-		[
-		],
-		'factoryServices' =>
-		[
-		],
-		'includes' =>
-		[
-		],
-		'setterInjections' =>
-		[
-		]
-	],
-	'' =>
-	[
-		'parameters' =>
-		[
-		],
-		'arrayValues' =>
-		[
-		],
-		'objectProperties' =>
-		[
-		],
-		'services' =>
-		[
-		],
-		'factoryServices' =>
-		[
-		],
-		'includes' =>
-		[
-		],
-		'setterInjections' =>
-		[
-		]
-	],
-	'' =>
-	[
-		'parameters' =>
-		[
-		],
-		'arrayValues' =>
-		[
-		],
-		'objectProperties' =>
-		[
-		],
-		'services' =>
-		[
-		],
-		'factoryServices' =>
-		[
-		],
-		'includes' =>
-		[
-		],
-		'setterInjections' =>
-		[
-		]
-	],
-	'' =>
-	[
-		'parameters' =>
-		[
-		],
-		'arrayValues' =>
-		[
-		],
-		'objectProperties' =>
-		[
-		],
-		'services' =>
-		[
-		],
-		'factoryServices' =>
-		[
-		],
-		'includes' =>
-		[
-		],
-		'setterInjections' =>
-		[
-		]
-	],
-	'' =>
-	[
-		'parameters' =>
-		[
-		],
-		'arrayValues' =>
-		[
-		],
-		'objectProperties' =>
-		[
-		],
-		'services' =>
-		[
-		],
-		'factoryServices' =>
-		[
-		],
-		'includes' =>
-		[
-		],
-		'setterInjections' =>
-		[
-		]
-	],
+*/
 ];
-
-if(array_key_exists($dependency,$configs)) extract($configs[$dependency]);

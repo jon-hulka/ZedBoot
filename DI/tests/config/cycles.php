@@ -1,4 +1,6 @@
 <?php
+//global $dependency;
+
 class FooFactory
 {
 	protected static $id=0;
@@ -16,105 +18,173 @@ class Foo
 	}
 	public function getId(){ return $this->id; }
 }
-$parameters =
+$configs =
 [
+	//Dependency cycle between arrayElements and objectProperties
+	'aeObj' =>
+	[
+		'error' => 'Circular dependency: aeObj > obj > aeObj',
+		'arrayElements' =>
+		[
+			'aeObj' =>
+			[
+				'obj',
+				'key'
+			],
+		],
+		'objectProperties' =>
+		[
+			'obj' =>
+			[
+				'aeObj',
+				'prop'
+			],
+		],
+	],
+	'aeAe' =>
+	[
+		//Dependency cycle between arrayElements
+		'error' => 'Circular dependency: aeAe > aeAe',
+		'arrayElements' =>
+		[
+			'aeAe' =>
+			[
+				'aeAe',
+				'key'
+			]
+		]
+	],
+	'objObj' =>
+	[
+		//Dependency cycle between objectProperties
+		'error' => 'Circular dependency: objObj > objObj',
+		'objectProperties' =>
+		[
+			'objObj' =>
+			[
+				'objObj',
+				'prop'
+			]
+		]
+	],
+	'svcSvc' =>
+	[
+		//Dependency cycle between services
+		'error' => 'Circular dependency: svcSvc > svcSvc',
+		'services' =>
+		[
+			'svcSvc' =>
+			[
+				'Foo',
+				['svcSvc'],
+				true
+			]
+		]
+	],
+	'svcFac' =>
+	[
+		//Dependency cycle between service, factoryService and factory
+		//In this case, the factory depends on the service it is building (constructor parameter)
+		'error' => 'Circular dependency: svcFac > fs > factory > svcFac',
+		'services' =>
+		[
+			'svcFac' =>
+			[
+				'Foo',
+				['fs'],
+				true
+			],
+			'factory' =>
+			[
+				'FooFactory',
+				['svcFac'],
+				true
+			],
+		],
+		'factoryServices' =>
+		[
+			'fs' =>
+			[
+				'factory',
+				'getFoo',
+				[],
+				true
+			],
+		]
+	],
+	'svcFs' =>
+	[
+		//Dependency cycle between service and factoryService
+		//svcFs requires fs, getter for fs requires svcFs
+		'error' => 'Circular dependency: svcFs > fs > svcFs',
+		'services' =>
+		[
+			'svcFs' =>
+			[
+				'Foo',
+				['fs']
+			],
+			'factory' =>
+			[
+				'FooFactory'
+			]
+		],
+		'factoryServices' =>
+		[
+			'fs' =>
+			[
+				'factory',
+				'getFoo',
+				['svcFs']
+			]
+		]
+	],
+	'fsFs' =>
+	[
+		//Dependency cycle between factoryServices
+		'error' => 'Circular dependency: fsFs > fsFs',
+		'services' =>
+		[
+			'factory' =>
+			[
+				'FooFactory'
+			]
+		],
+		'factoryServices' =>
+		[
+			'fsFs' =>
+			[
+				'factory',
+				'getFoo',
+				['fsFs']
+			]
+		]
+	],
+/*
+	'' =>
+	[
+		'parameters' =>
+		[
+		],
+		'arrayValues' =>
+		[
+		],
+		'objectProperties' =>
+		[
+		],
+		'services' =>
+		[
+		],
+		'factoryServices' =>
+		[
+		],
+		'includes' =>
+		[
+		],
+		'setterInjections' =>
+		[
+		]
+	],
+*/
 ];
-$arrayValues =
-[
-	//arrayValue > objectProperty cycle
-	'av.obj.cycle' =>
-	[
-		'obj.av.cycle',
-		'key'
-	],
-	//arrayValue > arrayValue cycle
-	'av.av.cycle' =>
-	[
-		'av.av.cycle',
-		'key'
-	]
-];
-$objectProperties =
-[
-	//objectProperty > objectProperty cycle
-	'obj.obj.cycle' =>
-	[
-		'obj.obj.cycle',
-		'prop'
-	],
-
-	//objectProperty > arrayValue cycle
-	'obj.av.cycle' =>
-	[
-		'av.obj.cycle',
-		'prop'
-	],
-];
-$services =
-[
-	//service > service cycle
-	'svc.cycle' =>
-	[
-		'Foo',
-		['svc.cycle'],
-		true
-	],
-	//service > factory > service cycle
-	//In this case, the factory depends on the service it is building
-	'svc.fs.cycle1' =>
-	[
-		'Foo',
-		['fs.svc.cycle1'],
-		true
-	],
-	'svc.fs.cycleFactory1' =>
-	[
-		'FooFactory',
-		['svc.fs.cycle1'],
-		true
-	],
-	
-	//service > factory > service cycle
-	//In this case, the factory is called with the service it is building as a parameter
-	'svc.fs.cycle2' =>
-	[
-		'Foo',
-		['fs.svc.cycle2'],
-		true
-	],
-	'svc.factory' =>
-	[
-		'FooFactory',
-		[],
-		true
-	],
-];
-$factoryServices =
-[
-	//factory > factory cycle
-	'fs.cycle' =>
-	[
-		'svc.factory',
-		'getFoo',
-		['fs.cycle'],
-		true
-	],
-	'fs.svc.cycle1' =>
-	[
-		'svc.fs.cycleFactory1',
-		'getFoo',
-		[],
-		true
-	],
-	'fs.svc.cycle2' =>
-	[
-		'svc.fs.factory',
-		'getFoo',
-		['svc.fs.cycle2'],
-		true
-	],
-];
-$includes =
-[
-	
-];
+//if(array_key_exists($dependency,$configs)) extract($configs[$dependency]);

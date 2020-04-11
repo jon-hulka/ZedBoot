@@ -28,7 +28,7 @@ class DependencyConfigLoader
 	/**
 	 * Specify a set of configuration parameters to be included with every call to loadConfig()
 	 * These will be available to the config script as variables
-	 * '__path', 'parameters', 'arrayValues', 'objectProperties', 'services', 'factoryServices', and 'includes' are not permitted as keys, if any appear an exception will be thrown
+	 * '__path', 'parameters', 'arrayElements', 'objectProperties', 'services', 'factoryServices', and 'includes' are not permitted as keys, if any appear an exception will be thrown
 	 */
 	public function setConfigParameters(array $configParameters)
 	{
@@ -37,7 +37,7 @@ class DependencyConfigLoader
 	/**
 	 * The config file can have any of the following:
 	 *  - $parameters - [id => value, ...]
-	 *  - $arrayValues - [ id => [<dependency id>,<array key>],...]
+	 *  - $arrayElements - [ id => [<dependency id>,<array key>],...]
 	 *  - $objectProperties - [ id => [<dependency id>,<property name>], ...]]
 	 *  - $services - [id => [className, optional arguments array, optional singleton boolean], ...]
 	 *  - $factoryServices - [id => [factory id, factory function name, optional arguments array, optional singleton boolean], ...]
@@ -49,43 +49,43 @@ class DependencyConfigLoader
 	public function loadConfig(\ZedBoot\DI\DependencyIndexInterface $dependencyIndex,$path)
 	{
 		$parameters=null;
-		$arrayValues=null;
+		$arrayElements=null;
 		$objectProperties=null;
 		$services=null;
 		$factoryServices=null;
 		$includes=null;
 		$setterInjections=null;
-		if(!file_exists($path)) throw new Err('Config file '.$path.' not found.');
+		if(!file_exists($path)) throw new Err('Config file '.$path.' not found');
 		$cf=static::$configFunction;
-		$cf($path,$parameters,$arrayValues,$objectProperties,$services,$factoryServices,$includes,$setterInjections,$this->configParameters);
+		$cf($path,$parameters,$arrayElements,$objectProperties,$services,$factoryServices,$includes,$setterInjections,$this->configParameters);
 		if($parameters!==null)
 		{
-			if(!is_array($parameters)) throw new Err('$parameters is not an array in config file '.$path.'.');
+			if(!is_array($parameters)) throw new Err('$parameters is not an array in config file '.$path);
 			$dependencyIndex->addParameters($parameters);
 		}
-		if($arrayValues!==null)
+		if($arrayElements!==null)
 		{
-			if(!is_array($arrayValues)) throw new Err('$arrayValues is not an array in config file '.$path.'.');
-			$this->addArrayValues($dependencyIndex,$arrayValues,$path);
+			if(!is_array($arrayElements)) throw new Err('$arrayElements is not an array in config file '.$path);
+			$this->addArrayElements($dependencyIndex,$arrayElements,$path);
 		}
 		if($objectProperties!==null)
 		{
-			if(!is_array($objectProperties)) throw new Err('$objectProperties is not an array in config file '.$path.'.');
+			if(!is_array($objectProperties)) throw new Err('$objectProperties is not an array in config file '.$path);
 			$this->addObjectProperties($dependencyIndex,$objectProperties,$path);
 		}
 		if($services!==null)
 		{
-			if(!is_array($services)) throw new Err('$services is not an array in config file '.$path.'.');
+			if(!is_array($services)) throw new Err('$services is not an array in config file '.$path);
 			$this->addServices($dependencyIndex,$services,$path);
 		}
 		if($factoryServices!==null)
 		{
-			if(!is_array($factoryServices)) throw new Err('$factoryServices is not an array in config file '.$path.'.');
+			if(!is_array($factoryServices)) throw new Err('$factoryServices is not an array in config file '.$path);
 			$this->addFactoryServices($dependencyIndex,$factoryServices,$path);
 		}
 		if($includes!==null)
 		{
-			if(!is_array($includes)) throw new Err('$includes is not an array in config file '.$path.'.');
+			if(!is_array($includes)) throw new Err('$includes is not an array in config file '.$path);
 			foreach($includes as $includePath)
 			{
 				if(substr($includePath,0,1)!=='/')
@@ -108,7 +108,7 @@ class DependencyConfigLoader
 		}
 		if($setterInjections!==null)
 		{
-			if(!is_array($setterInjections)) throw new Err('$setterInjections is not an array in config file '.$path.'.');
+			if(!is_array($setterInjections)) throw new Err('$setterInjections is not an array in config file '.$path);
 			$this->addSetterInjections($dependencyIndex, $setterInjections, $path);
 		}
 	}
@@ -130,7 +130,7 @@ class DependencyConfigLoader
 			$dependencyIndex->addService($id,$className,$args,$singleton);
 		}
 	}
-	protected function addArrayValues($dependencyIndex, $arrayValues, $path)
+	protected function addArrayElements($dependencyIndex, $arrayElements, $path)
 	{
 		$arrayId=null;
 		$arrayKey=null;
@@ -141,11 +141,11 @@ class DependencyConfigLoader
 			['arrayKey',['string','integer']],
 			['ifNotExists',['string','integer','double','boolean','array','null'],null]
 		];
-		foreach($arrayValues as $id=>$params)
+		foreach($arrayElements as $id=>$params)
 		{
-			$prefix='Config file '.$path.': arrayValues: '.json_encode($id).':';
+			$prefix='Config file '.$path.': arrayElements: '.json_encode($id).':';
 			[ $arrayId, $arrayKey, $ifNotExists ] = $this->extractParameters( $params, 2, $spec, $prefix );
-			$dependencyIndex->addArrayValue($id,$arrayId,$arrayKey,$ifNotExists);
+			$dependencyIndex->addArrayElement($id,$arrayId,$arrayKey,$ifNotExists);
 		}
 	}
 
@@ -229,7 +229,7 @@ class DependencyConfigLoader
 		}
 		if(count($params)>count($spec))
 		{
-			$err=$errorPrefix.' must have no more than '.count($spec).' parameter'.($requiredCount===1?'':'s').' ( ';
+			$err=$errorPrefix.' must have no more than '.count($spec).' parameter'.(count($params)===1?'':'s').' ( ';
 			$errParts=[];
 			$i=0;
 			foreach($spec as $s) $errParts[]=(++$i > $requiredCount ? 'optional ' : '').$s[0];
@@ -245,7 +245,7 @@ class DependencyConfigLoader
 				$t=gettype($v);
 				if(count($s[1]) && array_search($t,$s[1])===false) throw new Err
 				(
-					$errorPrefix.' '.static::$ordinals[$i].' parameter ('.$s[0].($i>$requiredCount ? ', optional':'').') expected '.implode(' | ',$s[1]).', got '.$t.'.'
+					$errorPrefix.' '.static::$ordinals[$i].' parameter ('.$s[0].($i>$requiredCount ? ', optional':'').') expected '.implode(' | ',$s[1]).', got '.$t
 				);
 				$result[]=$v;
 			}
@@ -262,7 +262,7 @@ DependencyConfigLoader::setConfigFunction
 	(
 		$__path,
 		&$parameters,
-		&$arrayValues,
+		&$arrayElements,
 		&$objectProperties,
 		&$services,
 		&$factoryServices,
@@ -276,7 +276,7 @@ DependencyConfigLoader::setConfigFunction
 			[
 				'__path',
 				'parameters',
-				'arrayValues',
+				'arrayElements',
 				'objectProperties',
 				'services',
 				'factoryServices',

@@ -24,7 +24,7 @@ interface DependencyIndexInterface
 	 * @param string $arrayKey array key
 	 * @param mixed $ifNotExists string will be treated as a dependency key, other scalar value as literal
 	 */
-	public function addArrayValue(string $id, string $arrayId, string $arrayKey, $ifNotExists=null);
+	public function addArrayElement(string $id, string $arrayId, string $arrayKey, $ifNotExists=null);
 	/**
 	 * @param string $id unique dependency id for the parameter, cannot conflict with existing dependency ids
 	 * @param string $objectId dependency id of the object

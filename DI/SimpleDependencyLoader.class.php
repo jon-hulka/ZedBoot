@@ -76,8 +76,8 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 					case 'parameter':
 						$result=$def['value'];
 						break;
-					case 'array value':
-						$result=$this->loadArrayValue($id, $def,$dependencyChain);
+					case 'array element':
+						$result=$this->loadArrayElement($id, $def,$dependencyChain);
 						break;
 					case 'object property':
 						$result=$this->loadObjectProperty($id, $def,$dependencyChain);
@@ -108,9 +108,9 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 	}
 	
 	/**
-	 * Array values are loaded fresh every time because the sources could be loaded by non-Singleton factories
+	 * Array elements are loaded fresh every time because the sources could be loaded by non-Singleton factories
 	 */
-	protected function loadArrayValue(string $id, array $def, array $dependencyChain)
+	protected function loadArrayElement(string $id, array $def, array $dependencyChain)
 	{
 		$result=null;
 		$ne=$def['if_not_exists'];
@@ -119,7 +119,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$id);
 		$dependencyChain[]=$id;
 		$arr=$this->loadDependency($def['array_id'], $dependencyChain);
-		if(!is_array($arr)) throw new Err($id.' arrayId: Expected '.$def['array_id'].' to be array, got '.gettype($arr).'.');
+		if(!is_array($arr)) throw new Err($id.' arrayId: Expected '.$def['array_id'].' to be array, got '.gettype($arr));
 		if(array_key_exists($def['key'],$arr))
 		{
 			$result=$arr[$def['key']];
@@ -151,7 +151,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$id);
 		$dependencyChain[]=$id;
 		$obj=$this->loadDependency($def['object_id'], $dependencyChain);
-		if(!is_object($obj)) throw new Err($id.' objectId: Expected '.$def['object_id'].' to be object, got '.gettype($obj).'.');
+		if(!is_object($obj)) throw new Err($id.' objectId: Expected '.$def['object_id'].' to be object, got '.gettype($obj));
 		$prop=$def['property'];
 		if(property_exists($obj,$prop))
 		{
@@ -246,7 +246,10 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 			{
 				$v=$arg;
 			}
-			else throw new Err('Expected '.$entityName.' to be one of: dependency id (string), array, null, or scalar constant, got '.gettype($arg));
+			else
+			{
+				throw new Err('Expected '.$entityName.' to be one of: dependency id (string), array, null, or scalar constant, got '.gettype($arg));
+			}
 			if($preserveKeys)
 			{
 				$argValues[$k]=$v;

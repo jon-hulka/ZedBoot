@@ -20,13 +20,13 @@ class SimpleDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 			'value'=>$def
 		]);
 	}
-	public function addArrayValue(string $id, string $arrayId, string $arrayKey, $ifNotExists=null)
+	public function addArrayElement(string $id, string $arrayId, string $arrayKey, $ifNotExists=null)
 	{
 		$this->addDefinition
 		(
 			$id,
 			[
-				'type'=>'array value',
+				'type'=>'array element',
 				'array_id'=>$arrayId,
 				'key'=>$arrayKey,
 				'if_not_exists'=>$ifNotExists
@@ -75,7 +75,7 @@ class SimpleDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 	public function getDependencyDefinition(string $id)
 	{
 		if(!array_key_exists($id,$this->definitions))
-			throw new Err('Attempt to get undefined dependency: '.json_encode($id).'.');
+			throw new Err('Attempt to get undefined dependency: '.json_encode($id));
 		return $this->definitions[$id];
 	}
 	public function getSetterInjections(string $serviceId)

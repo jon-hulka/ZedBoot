@@ -1,5 +1,4 @@
 <?php
-global $dependency;
 class Test
 {
 	protected $v;
@@ -10,39 +9,49 @@ class TestFactory
 {
 	public function getTest($v){ return new Test($v); }
 }
+//Converts strings '{{"prop" => "value"}}' to objects
+$postProcess=function(string $contents)
+{
+	return str_replace('}}\'',']',str_replace('\'{{','(object)[',$contents));
+};
 $configs =
 [
-	'avBadArray1' =>
+	'aeBadArray1' =>
 	[
-		//Object buried in the ifNotExists array should throw an exception
 		//This will only happen if the ifNotExists option is evaluated
+		'error' => 'Error loading aeBadArray1: dependency chain: aeBadArray1: Expected array element to be one of: dependency id (string), array, null, or scalar constant, got object',
 		'parameters' =>
 		[
 			'arr' => ['a','b']
 		],
-		'arrayValues' =>
+		'arrayElements' =>
 		[
 			//Force ifNotExists evaluation by asking for non-existent arr[2]
-			'avBadArray1' => ['arr',2,[[[(object)[]]],[]]]
+			//'{{}}' will be replaced by an empty object
+			'aeBadArray1' => ['arr',2,[[['{{}}']],[]]]
 		],
+		'services' =>
+		[
+			'eo'=>['EmptyObject']
+		]
 	],
-	'avBadArray2' =>
+	'aeBadArray2' =>
 	[
-		//undefined dependency "x" in ifNotExists array should throw an exception
 		//This will only happen if the ifNotExists option is evaluated
+		'error' => 'Error loading x: dependency chain: aeBadArray2 > x: Attempt to get undefined dependency: "x"',
 		'parameters' =>
 		[
 			'arr' => ['a','b']
 		],
-		'arrayValues' =>
+		'arrayElements' =>
 		[
 			//Force ifNotExists evaluation by asking for non-existent arr[2]
-			'avBadArray2' => ['arr',2,[[['x']],[]]]
+			'aeBadArray2' => ['arr',2,[[['x']],[]]]
 		],
 	],
 	'avNested' =>
 	[
-		//Should output [["This","is","an","array"],["This is a string",[3.141592653,1,2,3]]]
+		'output' => '[["This","is","an","array"],["This is a string",[3.141592653,1,2,3]]]',
 		'parameters' =>
 		[
 			'x' => ['This','is','an','array'],
@@ -50,7 +59,7 @@ $configs =
 			'z' => 3.141592653,
 			'arr' => []
 		],
-		'arrayValues' =>
+		'arrayElements' =>
 		[
 			//Force ifNotExists value
 			'avNested' => ['arr',1,['x',['y',['z',1,2,3]]]]
@@ -58,27 +67,27 @@ $configs =
 	],
 	'objBadArray' =>
 	[
-		//Object buried in the ifNotExists array should cause an exception
 		//This will only happen if the ifNotExists option is evaluated
+		'error' => 'Error loading objBadArray: dependency chain: objBadArray: Expected array element to be one of: dependency id (string), array, null, or scalar constant, got object',
 		'parameters' =>
 		[
-			'obj' => (object) ['prop' => 'test']
+			'obj' => '{{"prop" => "test"}}'
 		],
 		'objectProperties' =>
 		[
 			//Force ifNotExists evaluation by asking for non-existent obj->ne
-			'objBadArray' => ['obj','ne',[[[(object)[]]],[]]]
+			'objBadArray' => ['obj','ne',[[['{{}}']],[]]]
 		],
 	],
 	'objNested' =>
 	[
-		//Should output [["This","is","an","array"],["This is a string",[3.141592653,1,2,3]]]
+		'output' => '[["This","is","an","array"],["This is a string",[3.141592653,1,2,3]]]',
 		'parameters' =>
 		[
 			'x' => ['This','is','an','array'],
 			'y' => 'This is a string',
 			'z' => 3.141592653,
-			'obj' => (object)[]
+			'obj' => '{{}}'
 		],
 		'objectProperties' =>
 		[
@@ -89,14 +98,15 @@ $configs =
 	'svcBadArray' =>
 	[
 		//Object buried in service constructor's array parameter should cause an exception
+		'error' => 'Error loading svcBadArray: dependency chain: svcBadArray: Expected array element to be one of: dependency id (string), array, null, or scalar constant, got object',
 		'services' =>
 		[
-			'svcBadArray' => ['Test',[[[(object)[]]],[]]]
+			'svcBadArray' => ['Test',[[['{{}}']],[]]]
 		],
 	],
 	'svcNested' =>
 	[
-		//Should output [["test",[1,2,3],[3.14]]]
+		'output' => '["test",[1,2,3],[3.14]]',
 		'parameters' =>
 		[
 			'a' => [1,2,3],
@@ -104,7 +114,13 @@ $configs =
 		],
 		'services' =>
 		[
-			'svc' => ['Test',[['b','a',[3.14]]]]
+			'svc' =>
+			[
+				'Test',
+				[
+					['b','a',[3.14]]
+				]
+			]
 		],
 		'factoryServices' =>
 		[
@@ -114,21 +130,22 @@ $configs =
 	'fsvcBadArray' =>
 	[
 		//Object buried in factory service function's array parameter should cause an exception
+		'error' => 'Error loading fsvcBadArray: dependency chain: fsvcBadArray: Expected array element to be one of: dependency id (string), array, null, or scalar constant, got object',
 		'services' =>
 		[
 			'factory' => ['TestFactory']
 		],
 		'factoryServices' =>
 		[
-			'fsvcBadArray' => ['factory','getTest',[[[(object)[]]],[]]]
+			'fsvcBadArray' => ['factory','getTest',[[['{{}}']],[]]]
 		],
 	],
 	'fsvcNested' =>
 	[
-		//Should output [[{"param":"value"},"asdf",1,2,3]]
+		'output' => '[[{"prop":"value"},"asdf",1,2,3]]',
 		'parameters' =>
 		[
-			'p1' => (object)['param'=>'value'],
+			'p1' => '{{"prop"=>"value"}}',
 			'p2' => 'asdf'
 		],
 		'services' =>
@@ -148,6 +165,7 @@ $configs =
 			'fsvcNested' => ['svc', 'get']
 		]
 	],
+/*
 	'' =>
 	[
 		'parameters' =>
@@ -172,5 +190,5 @@ $configs =
 		[
 		]
 	],
+*/
 ];
-if(array_key_exists($dependency,$configs)) extract($configs[$dependency]);
