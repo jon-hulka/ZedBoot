@@ -9,22 +9,19 @@ namespace ZedBoot\DI;
  */
 
 /**
- * Incorporates dependency chain in its output for easier debugging of dependency issues
+ * Incorporates dependency chain into error messag for easier debugging of dependency issues
  */
 class DependencyLoaderException extends \Exception
 {
 	protected $dependencyChain;
 	public function __construct(string $message, int $code=null, \Throwable $previous=null, array $dependencyChain=null)
 	{
-		parent::__construct($message,$code,$previous);
+		parent::__construct
+		(
+			$message.($dependencyChain?': dependency chain: '.implode(' > ',$dependencyChain):'').($previous?': '.$previous->getMessage():''),
+			$code,
+			$previous
+		);
 		$this->dependencyChain=$dependencyChain;
-	}
-	public function __toString()
-	{
-		$result='';
-		$previous=$this->getPrevious();
-		if($previous!==null) $result=': '.$previous;
-		if($this->dependencyChain!==null && count($this->dependencyChain)>0) $result=': dependency chain: '.implode(' > ',$this->dependencyChain).$result;
-		return $this->message.$result;
 	}
 }
