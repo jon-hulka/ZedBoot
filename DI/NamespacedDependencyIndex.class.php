@@ -48,6 +48,26 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		}
 		$this->dependencyIndex->addParameters($parameters);
 	}
+	public function addArrayElement(string $id, string $arrayId, string $arrayKey, $ifNotExists=null)
+	{
+		if(!empty($this->currentNamespace))
+		{
+			$id=$this->currentNamespace.':'.$id;
+			if(strpos($arrayId, ':') === false) $arrayId=$this->currentNamespace.':'.$arrayId;
+			[$ifNotExists]=$this->namespaceArgs([$ifNotExists]);
+		}
+		$this->dependencyIndex->addArrayElement($id,$arrayId,$arrayKey,$ifNotExists);
+	}
+	public function addObjectProperty(string $id, string $objectId, string $propertyName, $ifNotExists=null)
+	{
+		if(!empty($this->currentNamespace))
+		{
+			$id=$this->currentNamespace.':'.$id;
+			if(strPos($objectId, ':') === false) $objectId=$this->currentNamespace.':'.$objectId;
+			[$ifNotExists]=$this->namespaceArgs([$ifNotExists]);
+		}
+		$this->dependencyIndex->addObjectProperty($id,$objectId,$propertyName,$ifNotExists);
+	}
 	public function addService(string $id,string $className,array $arguments=null,bool $singleton=true)
 	{
 		if(!empty($this->currentNamespace))
@@ -72,12 +92,9 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 	{
 		if(!empty($this->currentNamespace))
 		{
-			if(!empty($this->currentNamespace))
-			{
-				//If the service is local append its namespace
-				if(false===strpos($serviceId,':')) $serviceId=$this->currentNamespace.':'.$serviceId;
-				$arguments=$this->namespaceArgs($arguments);
-			}
+			//If the service is local append its namespace
+			if(false===strpos($serviceId,':')) $serviceId=$this->currentNamespace.':'.$serviceId;
+			$arguments=$this->namespaceArgs($arguments);
 		}
 		$this->dependencyIndex->addSetterInjection($serviceId,$function,$arguments);
 	}
@@ -121,15 +138,16 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 				//Recurse into nested arguments
 				$namespaced[$k]=$this->namespaceArgs($arg);
 			}
-			else if(is_scalar($arg) && !is_numeric($arg) && !is_bool($arg) && !is_null($arg) && false===strpos($arg,':'))
+			else if(is_string($arg) && false===strpos($arg,':'))
 			{
-				//This is a dependency id
-				//No namespace specified - this is a local argument - apply current namespace
+				//This is a dependency id with no namespace specified - apply current namespace
 				$namespaced[$k]=$this->currentNamespace.':'.$arg;
 			}
 			else
+			{
 				//Argument already has a namespace, or isn't a dependency id
 				$namespaced[$k]=$arg;
+			}
 		}
 		return $namespaced;
 	}
