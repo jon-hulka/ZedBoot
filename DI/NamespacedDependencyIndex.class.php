@@ -43,7 +43,17 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		if(!empty($this->currentNamespace))
 		{
 			$namespaced=[];
-			foreach($parameters as $id=>$param) $namespaced[$this->currentNamespace.':'.$id]=$param;
+			foreach($parameters as $id=>$param)
+			{
+				if(strpos($id, ':') === false)
+				{
+					$namespaced[$this->currentNamespace.':'.$id]=$param;
+				}
+				else
+				{
+					$namespaced[$id]=$param;
+				}
+			}
 			$parameters=$namespaced;
 		}
 		$this->dependencyIndex->addParameters($parameters);
