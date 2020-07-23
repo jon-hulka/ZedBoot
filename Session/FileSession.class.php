@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     Session
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2016-2018 Jonathan Hulka
+ * @copyright   Copyright (c) 2016-2020 Jonathan Hulka
  */
 
 /**
@@ -32,15 +32,14 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$gcChance=null,
 		$gc=null;
 	/**
-	 * If either $gcChance or $expiry is 0, garbage collection will not run
 	 * @param $savePath String root directory for files
 	 * @param $sessionId String unique to session. Each session will be indexed and garbage collected separately.
-	 * @param $expiry int expiry (seconds - default 28800) for:
+	 * @param $expiry int expiry (seconds - default 28800, 0 for no expiry by default) for:
 	 *   - datastore creation (default - can be specified in getDataStore() parameters) - datastores older than this will be reset
 	 *   - and garbage collection - inactive datastores or sessions will be cleaned up some time after $expiry seconds
 	 * @param $gcChance int garbage collection probability (calculated as 1 in $gcChance - default 500), if 0, garbage collection will not run
 	 */
-	public function __construct(string $savePath, string $sessionId, int $expiry=null, int $gcChance=null)
+	public function __construct(string $savePath, string $sessionId, int $expiry = null, int $gcChance = null)
 	{
 		$this->savePath=$savePath;
 		$this->sessionId=$sessionId;
@@ -70,37 +69,98 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$result=$this->getExpirableDataStore($keyPath,$expiry,$forceCreate);
 		return $result;
 	}
+
 	public function clearAll(string $keyRoot='')
 	{
 		$metaData=null;
-		$time=time();
 		if(!$this->started) $this->start();
 		//It is possible for the .meta file to be deleted while locking,
 		//but it should have been renewed by start()
 //Begin critical section
 		$metaData=$this->metaStore->lockAndRead();
-		if(!is_array($metaData)) $metaData=[];
-		if($keyRoot=='')
+		$dirty = false;
+		if(is_array($metaData) && array_key_exists('exp_by_key',$metaData))
 		{
-			if(is_dir($this->dataPath)) $this->rmdirRecursive($this->dataPath);
-			$metaData['exp_by_key']=[];
-		}
-		else
-		{
-			//Keys stored in meta data always start with '/'
-			$keyPath='/'.$this->processKey($keyRoot);
-			$fullPath=$this->dataPath.$keyPath;
-			if(array_key_exists('exp_by_key',$metaData))
+			if($keyRoot === '')
 			{
-				$metaData['exp_by_key']=$this->clearMetaSubPaths($metaData['exp_by_key'],$keyPath);
+				if(is_dir($this->dataPath)) $this->rmdirRecursive($this->dataPath);
+				$metaData['exp_by_key']=[];
+				$dirty = true;
 			}
-			if(is_dir($fullPath.'.subs')) $this->rmdirRecursive($fullPath.'.subs');
-			if(file_exists($fullPath)) unlink($fullPath);
+			else
+			{
+				//Keys stored in meta data always start with '/'
+				$keyPath='/'.$this->processKey($keyRoot);
+				$fullPath=$this->dataPath.$keyPath;
+				$metaData['exp_by_key']=$this->clearMetaSubPaths($metaData['exp_by_key'],$keyPath, $dirty);
+				if(is_dir($fullPath.'.subs')) $this->rmdirRecursive($fullPath.'.subs');
+				if(file_exists($fullPath)) unlink($fullPath);
+			}
 		}
 //End critical section
-		$this->metaStore->writeAndUnlock($metaData);
+		if($dirty)
+		{
+			$this->metaStore->writeAndUnlock($metaData);
+		}
+		else $this->metaStore->unlock();
 	}
-	protected function clearMetaSubPaths($expByKey,$keyPath)
+
+	public function refreshAll(string $keyRoot = '', int $expiry = null)
+	{
+		if(is_null($expiry))
+		{
+			$expiry = $this->expiry;
+		}
+		$metaData = null;
+		$time = time();
+		$expTime = ($expiry === 0 ? 0 : $time + $expiry);
+		$expByKey = null;
+		$keyPath = null;
+		$subsPath = null;
+		$subsPathLen = null;
+		$dirty = false;
+//Begin critical section
+		$metaData = $this->metaStore->lockAndRead();
+		if(is_array($metaData) && array_key_exists('exp_by_key', $metaData))
+		{
+			if($keyRoot !== '')
+			{
+				$keyPath = '/'.$this->processkey($keyRoot);
+				$subsPath = $keyPath.'.subs';
+				$subsPathLen = strlen($subsPath);
+			}
+			$expByKey = &$metaData['exp_by_key'];
+			foreach($expByKey as $subPath => &$exp)
+			{
+				if
+				(
+					(
+						$keyPath === null //All items targeted
+						|| substr($subPath, 0, $subsPathLen) === $subsPath //item is within the subs of $keyRoot
+						|| $keyPath === $subPath //item is $keyRoot
+					)
+					&&
+					(
+						$exp === 0 //Item has no expiry
+						|| $exp >= $time //Item is not expired
+					)
+				)
+				{
+					//Renew the expiry time
+					$exp = $expTime; 
+					$dirty = true;
+				}
+			}
+		}
+//End critical section
+		if($dirty)
+		{
+			$this->metaStore->writeAndUnlock($metaData);
+		}
+		else $this->metaStore->unlock();
+	}
+
+	protected function clearMetaSubPaths($expByKey, $keyPath, &$dirty)
 	{
 		$result=[];
 		$pathLen=strlen($keyPath);
@@ -114,9 +174,11 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 			{
 				$result[$subPath]=$exp;
 			}
+			else $dirty = true;
 		}
 		return $result;
 	}
+
 	protected function processKey($key)
 	{
 		$parts=null;
@@ -126,6 +188,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		foreach($parts as &$part) if(!ctype_alnum($part)) throw new Err('Invalid key: expected alphanumeric segments delimited by \'/\'');
 		return implode('.subs/',$parts);
 	}
+
 	protected function start()
 	{
 		$fp=null;
@@ -151,6 +214,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		if($this->expiry>0 && $this->gcChance>0 && rand(0,$this->gcChance-1)==floor($this->gcChance/2)) $this->gc->gc();
 		$this->started=true;
 	}
+
 	protected function clearExpiredKeys(&$metaData,$time)
 	{
 		if(empty($metaData['exp_by_key'])) $metaData['exp_by_key']=[];

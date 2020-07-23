@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     Session
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2016-2019 Jonathan Hulka
+ * @copyright   Copyright (c) 2016-2020 Jonathan Hulka
  */
 
 /**
@@ -39,5 +39,9 @@ class SubSession implements \ZedBoot\Session\SessionInterface
 	public function clearAll(string $keyRoot='')
 	{
 		$this->session->clearAll($this->subPath.'/'.trim($keyRoot,'/'));
+	}
+	public function refreshAll(string $keyRoot = '', int $expiry = null)
+	{
+		$this->session->refreshAll($this->subPath.'/'.trim($keyRoot, '/'), $expiry);
 	}
 }

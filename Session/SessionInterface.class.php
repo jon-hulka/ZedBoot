@@ -28,4 +28,11 @@ interface SessionInterface
 	 * @param String $keyRoot If not empty, only clear DataStores within the specified space ('foo/bar' will cause 'foo/bar and 'foo/bar/baz' to be cleared, but not 'foo')
 	 */
 	public function clearAll(string $keyRoot='');
+	/**
+	 * Refreshes all DataStore expiry times.
+	 * Matched DataStores with no expiry will also be affected.
+	 * @param String $keyRoot If not empty, only refresh DataStores within the specified space ('foo/bar' will cause 'foo/bar and 'foo/bar/baz' to be cleared, but not 'foo')
+	 * @param int $expiry expiry time in seconds from now. 0 indicates no expiry.
+	 */
+	public function refreshAll(string $keyRoot = '', int $expiry = null);
 }
