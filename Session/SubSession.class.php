@@ -19,28 +19,51 @@ use \ZedBoot\Error\ZBError as Err;
 class SubSession implements \ZedBoot\Session\SessionInterface
 {
 	protected
-		$session=null,
-		$expiry=null,
-		$subPath=null;
+		$session,
+		$expiry,
+		$subPath;
+
 	/**
 	 * @param $session \ZedBoot\Session\SessionInterface
 	 * @param $subPath String namespace to be prepended to every key
+	 * @param $expiry int|null optional expiry in seconds, if null parent session expiry will be used, if 0 no expiry
 	 */
-	public function __construct(\ZedBoot\Session\SessionInterface $session, string $subPath)
+	public function __construct
+	(
+		\ZedBoot\Session\SessionInterface $session,
+		string $subPath,
+		int $expiry = null
+	)
 	{
-		$this->session=$session;
-		$this->subPath=trim($subPath,'/');
+		$this->session = $session;
+		$this->subPath = trim($subPath,'/');
+		$this->expiry = $expiry;
 	}
-	public function getDataStore(string $key,int $expiry=null, bool $forceCreate=true): ? \ZedBoot\DataStore\DataStoreInterface
+
+	public function getDataStore
+	(
+		string $key,
+		int $expiry = null,
+		bool $forceCreate=true
+	): ? \ZedBoot\DataStore\DataStoreInterface
 	{
-		if(empty($expiry)) $expiry=$this->expiry;
-		return $this->session->getDataStore($this->subPath.'/'.trim($key,'/'),$expiry,$forceCreate);
+		if(empty($expiry)) $expiry = $this->expiry;
+		return $this->session->getDataStore($this->subPath.'/'.trim($key,'/'), $expiry, $forceCreate);
 	}
-	public function clearAll(string $keyRoot='')
+
+	public function clearAll
+	(
+		string $keyRoot=''
+	)
 	{
 		$this->session->clearAll($this->subPath.'/'.trim($keyRoot,'/'));
 	}
-	public function refreshAll(string $keyRoot = '', int $expiry = null)
+
+	public function refreshAll
+	(
+		string $keyRoot = '',
+		int $expiry = null
+	)
 	{
 		$this->session->refreshAll($this->subPath.'/'.trim($keyRoot, '/'), $expiry);
 	}
