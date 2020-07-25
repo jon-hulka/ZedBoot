@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     Session
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2018 Jonathan Hulka
+ * @copyright   Copyright (c) 2018 - 2020 Jonathan Hulka
  */
 
 namespace ZedBoot\Session;
@@ -13,25 +13,31 @@ class FileSessionFactory implements \ZedBoot\Session\SessionFactoryInterface
 {
 	protected
 		$sessions,
-		$savePath=null,
-		$expiry=null,
-		$gcChance=null;
-	public function __construct($savePath,$expiry=null,$gcChance=null)
+		$savePath,
+		$expiry,
+		$gcChance;
+
+	public function __construct($savePath, $expiry = null, $gcChance = null)
 	{
-		$this->savePath=$savePath;
-		$this->expiry=$expiry;
-		$this->gcChance=$gcChance;
-		$this->sessions=[];
+		$this->savePath = $savePath;
+		$this->expiry = $expiry;
+		$this->gcChance = $gcChance;
+		$this->sessions = [];
 	}
+
 	public function getSession($sessionId)
 	{
-		$result=null;
+		$result = null;
 		if(!ctype_alnum($sessionId)) throw new Err('Session id must be alphanumeric.');
-		if(array_key_exists($sessionId,$this->sessions))
+		if(array_key_exists($sessionId, $this->sessions))
 		{
-			$result=$this->sessions[$sessionId];
+			$result = $this->sessions[$sessionId];
 		}
-		else $result=new \ZedBoot\Session\FileSession($this->savePath,$sessionId,$this->expiry,$this->gcChance);
+		else
+		{
+			$result = new \ZedBoot\Session\FileSession($this->savePath,$sessionId,$this->expiry,$this->gcChance);
+			$this->sessions[$sessionId] = $result;
+		}
 		return $result;
 	}
 }
