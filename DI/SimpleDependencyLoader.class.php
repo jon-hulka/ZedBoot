@@ -70,7 +70,14 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 			}
 			else
 			{
-				$def=$this->dependencyIndex->getDependencyDefinition($id);
+				try
+				{
+					$def=$this->dependencyIndex->getDependencyDefinition($id);
+				}
+				catch(\Exception $e)
+				{
+					throw new Err('Loading dependency definition: '.$e->getMessage().': Dependency chain: '.implode(' > ', $dependencyChain).' > '.$id);
+				}
 				switch($def['type'])
 				{
 					case 'parameter':
@@ -195,7 +202,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		}
 		catch(\Exception $e)
 		{
-			throw new Err('Loading dependency: '.$e->getMessage().' Dependency chain: '.implode(' > ', $dependencyChain).' > '.$id);
+			throw new Err('Loading dependency: '.$e->getMessage().': Dependency chain: '.implode(' > ', $dependencyChain).' > '.$id);
 		}
 		if(is_object($result)) $this->checkSetterInjection($result,$id);
 		if($def['singleton']) $this->singletons[$id]=$result;
@@ -223,7 +230,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		}
 		catch(\Exception $e)
 		{
-			throw new Err('Running factory function: '.$id.'::'.$def['function'].'(): '.$e->getMessage().' Dependency chain: '.implode(' > ', $dependencyChain));
+			throw new Err('Running factory function: '.$id.'::'.$def['function'].'(): '.$e->getMessage().': Dependency chain: '.implode(' > ', $dependencyChain));
 		}
 		if(is_object($result)) $this->checkSetterInjection($result,$id);
 		if($def['singleton']) $this->singletons[$id]=$result;
