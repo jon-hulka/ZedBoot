@@ -249,7 +249,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 			//key is ok - put it at the back of the queue
 			else $expByKey[$k]=$t;
 		}
-		$this->clearEmptyPaths($this->savePath,$removedTree);
+		$this->clearEmptyPaths($this->savePath, $removedTree);
 		$metaData['exp_by_key']=$expByKey;
 	}
 	
@@ -259,9 +259,9 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		if(count($pathTree)>0)
 		{
 			//Clear child directories
-			foreach($pathTree as $dir=>$subTree) $hasFiles=$hasFiles||$this->clearEmptyPaths($path.'/'.$dir,$subTree);
+			foreach($pathTree as $dir=>$subTree) $hasFiles = ($hasFiles || $this->clearEmptyPaths($path.'/'.$dir,$subTree));
 		}
-		if(!$hasFiles) $hasFiles=count(glob($path.'/{,.}[!.,!..]*', GLOB_BRACE))>0;
+		if(!$hasFiles) $hasFiles = (count(glob($path.'/{,.}[!.,!..]*', GLOB_BRACE)) > 0);
 		if(!$hasFiles) rmdir($path);
 		return $hasFiles;
 	}
