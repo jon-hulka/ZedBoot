@@ -119,6 +119,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 		$subsPath = null;
 		$subsPathLen = null;
 		$dirty = false;
+		if(!$this->started) $this->start();
 //Begin critical section
 		$metaData = $this->metaStore->lockAndRead();
 		if(is_array($metaData) && array_key_exists('exp_by_key', $metaData))
@@ -239,9 +240,10 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 				//Don't include the file name - it is already gone
 				array_pop($parts);
 				$path=&$removedTree;
+				//Add this path to the tree
 				if(count($parts)>0) foreach($parts as $part)
 				{
-					$dir=$part.'.sub';
+					$dir=$part;
 					if(!array_key_exists($dir,$path)) $path[$dir]=[];
 					$path=&$path[$dir];
 				}
@@ -249,17 +251,22 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 			//key is ok - put it at the back of the queue
 			else $expByKey[$k]=$t;
 		}
-		$this->clearEmptyPaths($this->savePath, $removedTree);
-		$metaData['exp_by_key']=$expByKey;
+		$this->clearEmptyPaths($this->dataPath, $removedTree);
+		$metaData['exp_by_key'] = $expByKey;
 	}
 	
-	protected function clearEmptyPaths($path,Array $pathTree)
+	protected function clearEmptyPaths($path, array $pathTree)
 	{
-		$hasFiles=false;
+		$hasFiles = false;
+		$childHasFiles = false;
 		if(count($pathTree)>0)
 		{
 			//Clear child directories
-			foreach($pathTree as $dir=>$subTree) $hasFiles = ($hasFiles || $this->clearEmptyPaths($path.'/'.$dir,$subTree));
+			foreach($pathTree as $dir=>$subTree)
+			{
+				$childHasFiles = $this->clearEmptyPaths($path.'/'.$dir,$subTree);
+				$hasFiles = ($hasFiles || $childHasFiles);
+			}
 		}
 		if(!$hasFiles) $hasFiles = (count(glob($path.'/{,.}[!.,!..]*', GLOB_BRACE)) > 0);
 		if(!$hasFiles) rmdir($path);
