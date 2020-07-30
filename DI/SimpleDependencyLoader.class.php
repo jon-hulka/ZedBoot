@@ -188,8 +188,15 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		$argValues=$this->extractArguments($def['args'],$dependencyChain);
 		//Create a new instance
 		$cn=$def['class_name'];
-		$reflect=new \ReflectionClass($cn);
-		$result=$reflect->newInstanceArgs($argValues);
+		try
+		{
+			$reflect=new \ReflectionClass($cn);
+			$result=$reflect->newInstanceArgs($argValues);
+		}
+		catch(\Exception $e)
+		{
+			throw new Err($e.' Dependency chain: '.implode(' > ', $dependencyChain).' > '.$id);
+		}
 		if(is_object($result)) $this->checkSetterInjection($result,$id);
 		if($def['singleton']) $this->singletons[$id]=$result;
 		return $result;
@@ -210,7 +217,14 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		$factory=$this->loadDependency($factoryId,$dependencyChain);
 		if(!is_object($factory)) throw new Err('Factory '.json_encode($id).' is not an object.');
 		$argValues=$this->extractArguments($def['args'],$dependencyChain);
-		$result=([$factory,$def['function']])(...$argValues);
+		try
+		{
+			$result=([$factory,$def['function']])(...$argValues);
+		}
+		catch(\Exception $e)
+		{
+			throw new Err('Running '.$id.'::'.$def['function'].'(): '.$e->getMessage().' Dependency chain: '.implode(' > ', $dependencyChain));
+		}
 		if(is_object($result)) $this->checkSetterInjection($result,$id);
 		if($def['singleton']) $this->singletons[$id]=$result;
 		return $result;
