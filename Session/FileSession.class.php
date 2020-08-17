@@ -269,7 +269,7 @@ class FileSession implements \ZedBoot\Session\SessionInterface
 			}
 		}
 		if(!$hasFiles) $hasFiles = (count(glob($path.'/{,.}[!.,!..]*', GLOB_BRACE)) > 0);
-		if(!$hasFiles) rmdir($path);
+		if(!$hasFiles && is_dir($path)) rmdir($path);
 		return $hasFiles;
 	}
 
