@@ -9,9 +9,9 @@
 
 /**
  * SessionInterface implementation
- * Decorates a SessionInterface instance allowing multiple SubSession
- * instances to share a single SessionInterface without risk of key
- * collisions.
+ * Decorates a SessionInterface instance. The keys are namespaced, allowing
+ * multiple SubSession instances to share a single SessionInterface without
+ * risk of key collisions.
  */
 
 namespace ZedBoot\Session;

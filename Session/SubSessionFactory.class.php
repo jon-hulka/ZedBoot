@@ -1,6 +1,6 @@
 <?php
 /**
- * class SubSession | ZedBoot/Session/SubSessionFactory.class.php
+ * class SubSessionFactory | ZedBoot/Session/SubSessionFactory.class.php
  * @license     GNU General Public License, version 3
  * @package     Session
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
@@ -9,8 +9,7 @@
 
 /**
  * SessionFactoryInterface implementation
- * Decorates a SessionFactoryInterface instance.
- * Multiple SubSessionFactories can share a single SessionFactoryInterface without risk of key conflicts.
+ * Decorates a SessionFactoryInterface instance. The returned sessions are namespaced.
  */
 
 namespace ZedBoot\Session;

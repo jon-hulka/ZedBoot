@@ -12,7 +12,6 @@
  * Produces instances of \ZedBoot\DataStore\FileDataStore
  * Session expiry is guaranteed. If an expired session is used, all data is cleared first.
  * !!!Race conditions could occur if page load time exceeds session expiry.
- * For optimal performance use on a ram disk or tmpfs drive, but pay attention to file size/block size ratio (you could waste a lot of space creating small files with 4k blocks on tmpfs).
  */
 namespace ZedBoot\Session;
 use \ZedBoot\Error\ZBError as Err;
