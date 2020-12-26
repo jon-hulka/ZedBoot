@@ -124,7 +124,7 @@ class DependencyConfigLoader
 					}
 					$includePath='/'.implode('/',$pathParts);
 				}
-				$this->loadConfig($dependencyIndex,$includePath);
+				$this->loadConfig($dependencyIndex, $includePath, $configParameters);
 			}
 		}
 		if($setterInjections!==null)
