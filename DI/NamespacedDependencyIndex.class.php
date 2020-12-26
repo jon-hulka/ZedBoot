@@ -15,6 +15,7 @@ use \ZedBoot\Error\ZBError as Err;
  * hasn't already been loaded, it will be AND
  * <namespace>: will be prepended to each _local_ (namespace not specified) id in the configuration parameters
  * Loading is handled by DependencyConfigLoader
+ * The variable $diNamespace will be available to autoloaded dependency configuration scripts
  */
 class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 {
@@ -24,6 +25,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		$dependencyIndex,
 		$loadedConfigurations=[],
 		$configPath;
+
 	/**
 	 * @param DependencyConfigLoader $configLoader for loading configuration files
 	 * @param DependencyIndexInterface $dependencyIndex instance being decorated
@@ -38,6 +40,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		$this->dependencyIndex=$dependencyIndex;
 		$this->configPath=rtrim($configPath,'/');
 	}
+
 	public function addParameters(array $parameters)
 	{
 		if(!empty($this->currentNamespace))
@@ -58,6 +61,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		}
 		$this->dependencyIndex->addParameters($parameters);
 	}
+
 	public function addArrayElement(string $id, string $arrayId, string $arrayKey, $ifNotExists=null)
 	{
 		if(!empty($this->currentNamespace))
@@ -68,6 +72,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		}
 		$this->dependencyIndex->addArrayElement($id,$arrayId,$arrayKey,$ifNotExists);
 	}
+
 	public function addObjectProperty(string $id, string $objectId, string $propertyName, $ifNotExists=null)
 	{
 		if(!empty($this->currentNamespace))
@@ -78,6 +83,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		}
 		$this->dependencyIndex->addObjectProperty($id,$objectId,$propertyName,$ifNotExists);
 	}
+
 	public function addService(string $id,string $className,array $arguments=null,bool $singleton=true)
 	{
 		if(!empty($this->currentNamespace))
@@ -87,6 +93,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		}
 		$this->dependencyIndex->addService($id,$className,$arguments,$singleton);
 	}
+
 	public function addFactoryService(string $id,string $factoryId,string $function,array $arguments=null,bool $singleton=true)
 	{
 		if(!empty($this->currentNamespace))
@@ -98,6 +105,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		}
 		$this->dependencyIndex->addFactoryService($id,$factoryId,$function,$arguments,$singleton);
 	}
+
 	public function addSetterInjection(string $serviceId, string $function, array $arguments)
 	{
 		if(!empty($this->currentNamespace))
@@ -108,16 +116,19 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		}
 		$this->dependencyIndex->addSetterInjection($serviceId,$function,$arguments);
 	}
+
 	public function getDependencyDefinition(string $id)
 	{
 		$this->checkNamespace($id);
 		return $this->dependencyIndex->getDependencyDefinition($id);
 	}
+
 	public function getSetterInjections(string $serviceId)
 	{
 		$this->checkNamespace($serviceId);
 		return $this->dependencyIndex->getSetterInjections($serviceId);
 	}
+
 	protected function checkNamespace(string $id)
 	{
 		$parts=explode(':',$id);
@@ -129,15 +140,15 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 			//If the namespace isn't loaded yet, load it
 			if(false===array_search($path,$this->loadedConfigurations,true))
 			{
-				//As parameters, services, and factory services are added,
-				//$this->currentNamespace will be applied to them
-				$this->currentNamespace=$ns; //!! KEEP THIS !! it affects the call to configLoader->loadConfig()
-				$this->configLoader->loadConfig($this,$path);
+				//As parameters, services, and factory services are added, $this->currentNamespace will be applied to them
+				$this->currentNamespace=$ns; //!! KEEP THIS !! it affects callbacks from configLoader->loadConfig() to $this->add...()
+				$this->configLoader->loadConfig($this, $path, ['diNamespace' => $ns]);
 				$this->currentNamespace=null;
 				$this->loadedConfigurations[]=$path;
 			}
 		}
 	}
+
 	protected function namespaceArgs(array $args)
 	{
 		$namespaced=[];

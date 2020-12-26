@@ -17,14 +17,17 @@ use \ZedBoot\Error\ZBError as Err;
 class DependencyConfigLoader
 {
 	protected static
-		$ordinals=['1st','2nd','3rd','4th','5th','6th','7th'],
-		$configFunction=null;
+		$ordinals = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'],
+		$configFunction = null;
+
 	protected
 		$configParameters=array();
+
 	/**
 	 * On first call - sets up static $configFunction. On subsequent calls - does nothing.
 	 */
-	public static function setConfigFunction($f){ if(empty(static::$configFunction)) static::$configFunction=$f; }
+	public static function setConfigFunction($f){ if(static::$configFunction === null) static::$configFunction = $f; }
+
 	/**
 	 * Specify a set of configuration parameters to be included with every call to loadConfig()
 	 * These will be available to the config script as variables
@@ -34,6 +37,7 @@ class DependencyConfigLoader
 	{
 		$this->configParameters=$configParameters;
 	}
+
 	/**
 	 * The config file can have any of the following:
 	 *  - $parameters - [id => value, ...]
@@ -45,8 +49,14 @@ class DependencyConfigLoader
 	 *  - $setterInjections - [['id'=><dependency id>,'function'=><function name>,'args'=><arguments array>]]
 	 * For more details, see DependencyIndexInterface
 	 * @param string $path file to load
+	 * @param array $configParameters optional custom configuration parameters - see setConfigParameters - these take precedence over values passed to setConfigParameters
 	 */
-	public function loadConfig(\ZedBoot\DI\DependencyIndexInterface $dependencyIndex,$path)
+	public function loadConfig
+	(
+		\ZedBoot\DI\DependencyIndexInterface $dependencyIndex,
+		string $path,
+		array $configParameters = []
+	)
 	{
 		$parameters=null;
 		$arrayElements=null;
@@ -57,7 +67,18 @@ class DependencyConfigLoader
 		$setterInjections=null;
 		if(!file_exists($path)) throw new Err('Config file '.$path.' not found');
 		$cf=static::$configFunction;
-		$cf($path,$parameters,$arrayElements,$objectProperties,$services,$factoryServices,$includes,$setterInjections,$this->configParameters);
+		$cf
+		(
+			$path,
+			$parameters,
+			$arrayElements,
+			$objectProperties,
+			$services,
+			$factoryServices,
+			$includes,
+			$setterInjections,
+			array_merge($this->configParameters, $configParameters)
+		);
 		if($parameters!==null)
 		{
 			if(!is_array($parameters)) throw new Err('$parameters is not an array in config file '.$path);
@@ -112,6 +133,7 @@ class DependencyConfigLoader
 			$this->addSetterInjections($dependencyIndex, $setterInjections, $path);
 		}
 	}
+
 	protected function addServices($dependencyIndex, $services, $path)
 	{
 		$className=null;
@@ -130,6 +152,7 @@ class DependencyConfigLoader
 			$dependencyIndex->addService($id,$className,$args,$singleton);
 		}
 	}
+
 	protected function addArrayElements($dependencyIndex, $arrayElements, $path)
 	{
 		$arrayId=null;
@@ -167,6 +190,7 @@ class DependencyConfigLoader
 			$dependencyIndex->addObjectProperty($id,$objectId,$propertyName,$ifNotExists);
 		}
 	}
+
 	protected function addFactoryServices($dependencyIndex, $factoryServices, $path)
 	{
 		$factoryId=null;
@@ -187,6 +211,7 @@ class DependencyConfigLoader
 			$dependencyIndex->addFactoryService($id,$factoryId,$function,$args,$singleton);
 		}
 	}
+
 	protected function addSetterInjections($dependencyIndex, $setterInjections, $path)
 	{
 		$serviceId=null;
@@ -205,6 +230,7 @@ class DependencyConfigLoader
 			$dependencyIndex->addSetterInjection($serviceId,$function,$args);
 		}
 	}
+
 	protected function extractParameters
 	(
 		$params,
@@ -255,6 +281,7 @@ class DependencyConfigLoader
 		return $result;
 	}
 }
+
 //Config loader fuction is defined outside DependencyConfigLoader's private scope, keeping DependencyConfigLoader insulated from the configuration file
 DependencyConfigLoader::setConfigFunction
 (
