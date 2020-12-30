@@ -120,7 +120,7 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 			else if(!empty($def['required']))
 			{
 				$ok=false;
-				$messages[$k]='Missing required field: '.$def['name'];
+				$messages[$k]=$def['name'].' is required.';
 			}
 		}
 		if($ok) foreach($toApply as $k=>$def)
