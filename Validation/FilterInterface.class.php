@@ -15,12 +15,9 @@ namespace ZedBoot\Validation;
 interface FilterInterface
 {
 	/**
-	 * @param Array $parameters values to be filtered
-	 * @return Array|boolean filtered results on success, false on failure.
+	 * @param array $parameters values to be filtered
+	 * 
+	 * @return array ['status' => 'success', 'data' => [...]] or ['status' => 'error', 'messages' => [...]]
 	 */
-	public function validate(Array $parameters);
-	/**
-	 * @return Array error messages from last call to validate, by parameter keys.
-	 */
-	public function getMessages();
+	public function validate(Array $parameters) : array;
 }

@@ -29,12 +29,12 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 		$handlers;
 	/**
 	 * flags can be specified in a filter definition array, or in its 'options' array, if it is in both, the outer version will override the 'options' version
-	 * @param Array $definitions as passed to filter_var_array with additional elements as described above
-	 * @param Array $customHandlers [<filter name>=><\ZedBoot\Validation\FilterHandlerInterface instance>,...]
+	 * @param array $definitions as passed to filter_var_array with additional elements as described above
+	 * @param array $customHandlers [<filter name>=><\ZedBoot\Validation\FilterHandlerInterface instance>,...]
 	 */
 	public function __construct(
-		Array $definitions,
-		Array $customHandlers=[]
+		array $definitions,
+		array $customHandlers=[]
 	)
 	{
 		$this->handlers=$customHandlers;
@@ -55,7 +55,7 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 			if(!is_array($def))
 			{
 				$badDefs[$k]=$k;
-				$errs[]='$definitions['.$k.']: expected Array, got '.$this->getTypeString($def);
+				$errs[]='$definitions['.$k.']: expected array, got '.$this->getTypeString($def);
 			}
 			else foreach($required as $req) if(!array_key_exists($req,$def)) $errs[]='Missing $definitions['.$k.']['.$req.']';
 		}
@@ -88,6 +88,7 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 		}
 		if(count($errs)>0) throw new \Exception(implode(PHP_EOL,$errs));
 	}
+
 	protected function getTypeString($v)
 	{
 		return is_scalar($v)
@@ -96,11 +97,12 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 				? get_class($v)
 				: gettype($v));
 	}
-	public function validate(Array $parameters)
+
+	public function validate(array $parameters) : array
 	{
 		$ok=true;
 		$result=false;
-		$this->messages=[];
+		$messages=[];
 		$vs=[];
 		//Only apply filters to parameters that are present
 		$toApply=[];
@@ -118,7 +120,7 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 			else if(!empty($def['required']))
 			{
 				$ok=false;
-				$this->messages[$k]='Missing required field: '.$def['name'];
+				$messages[$k]='Missing required field: '.$def['name'];
 			}
 		}
 		if($ok) foreach($toApply as $k=>$def)
@@ -142,17 +144,17 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 				if($out===false)
 				{
 					$ok=false;
-					$this->messages[$k]=$def['help'];
+					$messages[$k]=$def['help'];
 				}
 			}
 			//else input is empty string and empty_as_null is specified - $out is already null
 			$vs[$k]=$out;
 		}
-		if($ok) $result=$vs;
+		if($ok)
+		{
+			$result = ['status' => 'success', 'data' => $vs];
+		}
+		else $result = ['status' => 'error', 'messages' => $messages];
 		return $result;
-	}
-	public function getMessages()
-	{
-		return $this->messages;
 	}
 }
