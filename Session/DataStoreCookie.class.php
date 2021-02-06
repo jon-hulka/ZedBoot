@@ -105,7 +105,12 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 
 	protected function getRandom($length)
 	{
-		$result='';
+		$result = '';
+		//Make the first character alpha-only to prevent the possiblility of mixing up pure-numeric results (such as '0123' converted to 123)
+		do
+		{
+			$result = substr(base64_encode(random_bytes(3)), 0, 1);
+		}while(!ctype_alpha($result));
 		do
 		{
 			//Discard the last 3 bytes, because bit packing makes the last few characters less random
@@ -114,19 +119,19 @@ class DataStoreCookie implements \ZedBoot\Session\CookieInterface
 				//Discard non-alhpanumeric characters
 				str_replace
 				(
-					['/','+','='],'',
+					['/','+','='],
+					'',
 					base64_encode
 					(
 						//Base 64 produces 4 characters for each 3 bytes, so most times this will give enough bytes in a single pass
-						random_bytes(($length-strlen($result))*0.8+4)
+						random_bytes(($length - strlen($result)) * 0.8 + 4)
 					)
 				),
 				0,
 				-3
 			);
-		}while(strlen($result)<$length);
-		//Prepend a character to ensure there is never a completely numeric result
-		return 'c'.substr($result,0,$length);
+		}while(strlen($result) < $length);
+		return substr($result, 0, $length);
 	}
 	
 	protected function helpCreate(&$index)
