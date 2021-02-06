@@ -1,4 +1,11 @@
 <?php
+/**
+ * Class FileSystemTools | ZedBoot/Utilities/FileSessionTools.class.php
+ * @license     GNU General Public License, version 3
+ * @package     Utilities
+ * @author      Jonathan Hulka <jon.hulka@gmail.com>
+ * @copyright   Copyright (c) 2018 Jonathan Hulka
+ */
 namespace ZedBoot\Utilities;
 use \ZedBoot\Error\ZBError as Err;
 class FileSystemTools

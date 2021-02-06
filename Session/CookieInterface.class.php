@@ -7,13 +7,14 @@
  * @copyright   Copyright (c) 2018 Jonathan Hulka
  */
 
+namespace ZedBoot\Session;
+
 /**
  * Cookie manager
  * Implementations of this interface should provide a consistent internal
  * id linked to a client's cookie. The internal id should not change when
  * the client's cookie value is regenerated.
  */
-namespace ZedBoot\Session;
 interface CookieInterface
 {
 	/**
