@@ -22,13 +22,13 @@ interface ResponseInterface
 	public function handleRequest();
 	
 	/**
-	 * @return Array 0 or more arrays of header parameters array(array(<header>,<optional replace>,<optional response code>), ...)
+	 * @return array 0 or more arrays of header parameters array(array(<header>,<optional replace>,<optional response code>), ...)
 	 */
 	public function getHeaders(): array;
 
 	/**
 	 * Typically the view will be invoked here.
-	 * @return String page response
+	 * @return string page response
 	 */
 	public function getResponseText(): string;
 }
