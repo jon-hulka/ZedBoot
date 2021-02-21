@@ -30,7 +30,7 @@ class RandomText implements RandomTextInterface
 		$this->allowedInitial = $allowedInitial;
 		$this->allowedCount = strlen($allowedChars);
 		if($this->allowedCount < 1 || $this->allowedCount > 256) throw new \Exception('At least 1 and no more than 256 allowed character(s) must be specified.');
-		if($allowedInitials !== null)
+		if($allowedInitial !== null)
 		{
 			$len = strlen($allowedInitial);
 			if($len < 1 || $len > 256) throw new \Exception('At least 1 and no more than 256 allowed initial(s) must be specified.');
