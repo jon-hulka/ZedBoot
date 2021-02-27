@@ -166,7 +166,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 			//If the namespace isn't loaded yet, load it
 			if(false === array_search($ns,$this->loadedConfigurations, true))
 			{
-				$path = ($this->pathResolutionFunction)($configPath, $ns);
+				$path = ($this->pathResolutionFunction)($this->configPath, $ns);
 				//As parameters, services, and factory services are added, $this->currentNamespace will be applied to them
 				$this->currentNamespace = $ns; //!! KEEP THIS !! it affects callbacks from configLoader->loadConfig() to $this->add...()
 				$this->configLoader->loadConfig($this, $path, ['diNamespace' => $ns]);
