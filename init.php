@@ -55,11 +55,18 @@
  */
 use \ZedBoot\Error\ZBError as Err;
 /**
- * @param $configDir String This is where dependency configuration files are found
- * @param $bootConfigKey dependency key for boot configuration. This correlates to a .php file located within the configuration directory.
- * @param $zbClassPath String ZedBoot root path of ZedBoot namespace
+ * @param string $configDir This is where dependency configuration files are found
+ * @param string $bootConfigKey dependency key for boot configuration. This correlates to a .php file located within the configuration directory.
+ * @param string $zbClassPath ZedBoot root path of ZedBoot namespace
+ * @param callable|null $dependencyNamespaceResolver optional function(string $configPath, string $namespace) returns path of config file to load
  */
-function zbInit($configDir,$bootConfigKey,$zbClassPath)
+function zbInit
+(
+	string $configDir,
+	string $bootConfigKey,
+	string $zbClassPath,
+	callable $dependencyNamespaceResolver = null
+)
 {
 	$ok=true;
 	$obStarted=false;
@@ -76,7 +83,14 @@ function zbInit($configDir,$bootConfigKey,$zbClassPath)
 		$configLoader=new \ZedBoot\DI\DependencyConfigLoader();
 
 		//$dependencyIndex finds and loads namespaced dependency configuration files as needed by $dependencyLoader
-		$dependencyIndex=new \ZedBoot\DI\NamespacedDependencyIndex($configLoader, new \ZedBoot\DI\SimpleDependencyIndex(),$configDir);
+		$dependencyIndex = new \ZedBoot\DI\NamespacedDependencyIndex
+		(
+			$configLoader,
+			new \ZedBoot\DI\SimpleDependencyIndex(),
+			$configDir,
+			$dependencyNamespaceResolver
+		);
+
 		$dependencyLoader=new \ZedBoot\DI\SimpleDependencyLoader($dependencyIndex);
 		
 		//Make sure shared parameters are available as soon as possible

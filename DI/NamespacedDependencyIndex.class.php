@@ -12,8 +12,11 @@ use \ZedBoot\Error\ZBError as Err;
  * Adds autoloading functionality to an instance of DependencyIndexInterface
  * When getDependencyDefinition() is called, if the dependency id has the form
  * '<namespace>:<id>', if the configuration file located at <configPath>/<namespace>.php
- * hasn't already been loaded, it will be AND
- * <namespace>: will be prepended to each _local_ (namespace not specified) id in the configuration parameters
+ * (Or wherever the path resolution function specifies - see constructor) hasn't already
+ * been loaded, it will be AND <namespace>: will be prepended to each local (namespace
+ * not specified) id in the configuration parameters.<br>
+ * Relative namespaces can be specified as './<ns-path>', For example, from namespace
+ * 'foo/bar', the namespace path './baz:dep' refers to 'foo/baz:dep'.<br>  
  * Loading is handled by DependencyConfigLoader
  * The variable $diNamespace will be available to autoloaded dependency configuration scripts
  */
@@ -24,86 +27,98 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		$currentNamespace=null,
 		$dependencyIndex,
 		$loadedConfigurations=[],
-		$configPath;
+		$configPath,
+		$pathResolutionFunction;
 
 	/**
 	 * @param DependencyConfigLoader $configLoader for loading configuration files
 	 * @param DependencyIndexInterface $dependencyIndex instance being decorated
-	 * @param String $configPath file names will be resolved relative to this path
+	 * @param string $configPath file names will be resolved relative to this path
+	 * @param callable|null $pathResolutionFunction optional function(string $configPath, string $namespace) returns path of config file to load
+	 * @return \ZedBoot\DI\NamespacedDependencyIndex
 	 */
-	public function __construct(
+	public function __construct
+	(
 		\ZedBoot\DI\DependencyConfigLoader $configLoader,
 		\ZedBoot\DI\DependencyIndexInterface $dependencyIndex,
-		$configPath)
+		string $configPath,
+		callable $pathResolutionFunction = null
+	)
 	{
-		$this->configLoader=$configLoader;
-		$this->dependencyIndex=$dependencyIndex;
-		$this->configPath=rtrim($configPath,'/');
+		$this->configLoader = $configLoader;
+		$this->dependencyIndex = $dependencyIndex;
+		$this->configPath = rtrim($configPath,'/');
+		$this->pathResolutionFunction = empty($pathResolutionFunction) 
+			? function($configPath, $namespace)
+			{
+				return $this->configPath.'/'.$namespace.'.php';
+			}
+			: $pathResolutionFunction;
 	}
 
 	public function addParameters(array $parameters)
 	{
 		if(!empty($this->currentNamespace))
 		{
-			$namespaced=[];
-			foreach($parameters as $id=>$param)
+			$namespaced = [];
+			foreach($parameters as $id => $param)
 			{
 				if(strpos($id, ':') === false)
 				{
-					$namespaced[$this->currentNamespace.':'.$id]=$param;
+					$namespaced[$this->currentNamespace.':'.$id] = $param;
 				}
 				else
 				{
-					$namespaced[$id]=$param;
+					$namespaced[$id] = $param;
 				}
 			}
-			$parameters=$namespaced;
+			$parameters = $namespaced;
 		}
 		$this->dependencyIndex->addParameters($parameters);
 	}
 
-	public function addArrayElement(string $id, string $arrayId, string $arrayKey, $ifNotExists=null)
+	public function addArrayElement(string $id, string $arrayId, string $arrayKey, $ifNotExists = null)
 	{
 		if(!empty($this->currentNamespace))
 		{
-			$id=$this->currentNamespace.':'.$id;
-			if(strpos($arrayId, ':') === false) $arrayId=$this->currentNamespace.':'.$arrayId;
-			[$ifNotExists]=$this->namespaceArgs([$ifNotExists]);
+			$id = $this->currentNamespace.':'.$id;
+			if(strpos($arrayId, ':') === false) $arrayId = $this->currentNamespace.':'.$arrayId;
+			[$ifNotExists] = $this->namespaceArgs([$ifNotExists]);
 		}
-		$this->dependencyIndex->addArrayElement($id,$arrayId,$arrayKey,$ifNotExists);
+		$this->dependencyIndex->addArrayElement($id, $arrayId, $arrayKey, $ifNotExists);
 	}
 
 	public function addObjectProperty(string $id, string $objectId, string $propertyName, $ifNotExists=null)
 	{
 		if(!empty($this->currentNamespace))
 		{
-			$id=$this->currentNamespace.':'.$id;
+			$id = $this->currentNamespace.':'.$id;
 			if(strPos($objectId, ':') === false) $objectId=$this->currentNamespace.':'.$objectId;
-			[$ifNotExists]=$this->namespaceArgs([$ifNotExists]);
+			[$ifNotExists] = $this->namespaceArgs([$ifNotExists]);
 		}
-		$this->dependencyIndex->addObjectProperty($id,$objectId,$propertyName,$ifNotExists);
+		$this->dependencyIndex->addObjectProperty($id, $objectId, $propertyName, $ifNotExists);
 	}
 
-	public function addService(string $id,string $className,array $arguments=null,bool $singleton=true)
+	public function addService(string $id, string $className, array $arguments=null, bool $singleton = true)
 	{
 		if(!empty($this->currentNamespace))
 		{
-			$id=$this->currentNamespace.':'.$id;
-			if($arguments!==null) $arguments=$this->namespaceArgs($arguments);
+			$id = $this->currentNamespace.':'.$id;
+			if($arguments !== null) $arguments = $this->namespaceArgs($arguments);
 		}
-		$this->dependencyIndex->addService($id,$className,$arguments,$singleton);
+		$this->dependencyIndex->addService($id, $className, $arguments, $singleton);
 	}
 
-	public function addFactoryService(string $id,string $factoryId,string $function,array $arguments=null,bool $singleton=true)
+	public function addFactoryService(string $id, string $factoryId, string $function, array $arguments = null, bool $singleton = true)
 	{
 		if(!empty($this->currentNamespace))
 		{
 			$id=$this->currentNamespace.':'.$id;
 			//If the factory is local append its namespace
-			if(false===strpos($factoryId,':')) $factoryId=$this->currentNamespace.':'.$factoryId;
-			if($arguments!==null) $arguments=$this->namespaceArgs($arguments);
+			if(false === strpos($factoryId, ':')) $factoryId = $this->currentNamespace.':'.$factoryId;
+			if($arguments !== null) $arguments = $this->namespaceArgs($arguments);
 		}
-		$this->dependencyIndex->addFactoryService($id,$factoryId,$function,$arguments,$singleton);
+		$this->dependencyIndex->addFactoryService($id, $factoryId, $function, $arguments, $singleton);
 	}
 
 	public function addSetterInjection(string $serviceId, string $function, array $arguments)
@@ -111,10 +126,10 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		if(!empty($this->currentNamespace))
 		{
 			//If the service is local append its namespace
-			if(false===strpos($serviceId,':')) $serviceId=$this->currentNamespace.':'.$serviceId;
-			$arguments=$this->namespaceArgs($arguments);
+			if(false === strpos($serviceId, ':')) $serviceId = $this->currentNamespace.':'.$serviceId;
+			$arguments = $this->namespaceArgs($arguments);
 		}
-		$this->dependencyIndex->addSetterInjection($serviceId,$function,$arguments);
+		$this->dependencyIndex->addSetterInjection($serviceId, $function, $arguments);
 	}
 
 	public function getDependencyDefinition(string $id)
@@ -131,43 +146,55 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 
 	protected function checkNamespace(string $id)
 	{
-		$parts=explode(':',$id);
-		if(count($parts)>1)
+		$parts = explode(':', $id);
+		if(count($parts) > 2) throw new \Err('Unexpected \':\' in dependency key '.$id);
+		if(count($parts) > 1)
 		{
 			//This is a namespaced dependency
-			$ns=$parts[0];
-			$path=$this->configPath.'/'.$ns.'.php';
-			//If the namespace isn't loaded yet, load it
-			if(false===array_search($path,$this->loadedConfigurations,true))
+			$ns = $parts[0];
+			if(strpos($ns, './') === 0)
 			{
+				$ns = substr($ns, 2);
+				$cParts = explode($this->currentNamespace);
+				if(count($cParts) > 1)
+				{
+					$cParts[] = $ns;
+					array_shift($cParts);
+					$ns = implode('/', $cParts);
+				}
+			}
+			//If the namespace isn't loaded yet, load it
+			if(false === array_search($ns,$this->loadedConfigurations, true))
+			{
+				$path = $this->pathResolutionFunction($configPath, $ns);
 				//As parameters, services, and factory services are added, $this->currentNamespace will be applied to them
-				$this->currentNamespace=$ns; //!! KEEP THIS !! it affects callbacks from configLoader->loadConfig() to $this->add...()
+				$this->currentNamespace = $ns; //!! KEEP THIS !! it affects callbacks from configLoader->loadConfig() to $this->add...()
 				$this->configLoader->loadConfig($this, $path, ['diNamespace' => $ns]);
-				$this->currentNamespace=null;
-				$this->loadedConfigurations[]=$path;
+				$this->currentNamespace = null;
+				$this->loadedConfigurations[] = $ns;
 			}
 		}
 	}
 
 	protected function namespaceArgs(array $args)
 	{
-		$namespaced=[];
-		foreach($args as $k=>$arg)
+		$namespaced = [];
+		foreach($args as $k => $arg)
 		{
 			if(is_array($arg))
 			{
 				//Recurse into nested arguments
-				$namespaced[$k]=$this->namespaceArgs($arg);
+				$namespaced[$k] = $this->namespaceArgs($arg);
 			}
-			else if(is_string($arg) && false===strpos($arg,':'))
+			else if(is_string($arg) && false === strpos($arg,':'))
 			{
 				//This is a dependency id with no namespace specified - apply current namespace
-				$namespaced[$k]=$this->currentNamespace.':'.$arg;
+				$namespaced[$k] = $this->currentNamespace.':'.$arg;
 			}
 			else
 			{
 				//Argument already has a namespace, or isn't a dependency id
-				$namespaced[$k]=$arg;
+				$namespaced[$k] = $arg;
 			}
 		}
 		return $namespaced;
