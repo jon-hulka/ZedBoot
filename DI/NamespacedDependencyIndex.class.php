@@ -156,7 +156,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 			{
 				$ns = substr($ns, 2);
 				$cParts = explode('/', $this->currentNamespace);
-				if(count($cParts) > 1)
+				if(count($cParts) > 0)
 				{
 					$cParts[] = $ns;
 					array_shift($cParts);
