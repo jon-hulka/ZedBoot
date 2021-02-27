@@ -155,7 +155,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 			if(strpos($ns, './') === 0)
 			{
 				$ns = substr($ns, 2);
-				$cParts = explode($this->currentNamespace);
+				$cParts = explode('/', $this->currentNamespace);
 				if(count($cParts) > 1)
 				{
 					$cParts[] = $ns;
