@@ -152,17 +152,6 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		{
 			//This is a namespaced dependency
 			$ns = $parts[0];
-			if(strpos($ns, './') === 0)
-			{
-				$ns = substr($ns, 2);
-				$cParts = explode('/', $this->currentNamespace);
-				if(count($cParts) > 0)
-				{
-					$cParts[] = $ns;
-					array_shift($cParts);
-					$ns = implode('/', $cParts);
-				}
-			}
 			//If the namespace isn't loaded yet, load it
 			if(false === array_search($ns,$this->loadedConfigurations, true))
 			{
@@ -179,6 +168,10 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 	protected function namespaceArgs(array $args)
 	{
 		$namespaced = [];
+		$k = null;
+		$arg = null;
+		$ns = null;
+		$parts = null;
 		foreach($args as $k => $arg)
 		{
 			if(is_array($arg))
@@ -186,10 +179,27 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 				//Recurse into nested arguments
 				$namespaced[$k] = $this->namespaceArgs($arg);
 			}
-			else if(is_string($arg) && false === strpos($arg,':'))
+			else if(is_string($arg))
 			{
-				//This is a dependency id with no namespace specified - apply current namespace
-				$namespaced[$k] = $this->currentNamespace.':'.$arg;
+				if(false === strpos($arg,':'))
+				{
+					//This is a dependency id with no namespace specified - apply current namespace
+					$namespaced[$k] = $this->currentNamespace.':'.$arg;
+				}
+				else if(strpos($arg, './') === 0)
+				{
+					//Relative namespace
+					$ns = substr($arg, 2);
+					$parts = explode('/', $this->currentNamespace);
+					if(count($parts) > 0)
+					{
+						//The relative namespace is at the parent level of the current - back up one level
+						array_pop($parts);
+						$parts[] = $ns;
+						$ns = implode('/', $parts);
+					}
+					$namespaced[$k] = $ns;
+				}
 			}
 			else
 			{
