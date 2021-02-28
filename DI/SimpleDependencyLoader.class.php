@@ -222,7 +222,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		if(false!==(array_search($factoryId,$dependencyChain,true)))
 			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$factoryId);
 		$factory=$this->loadDependency($factoryId,$dependencyChain);
-		if(!is_object($factory)) throw new Err('Factory '.json_encode($id).' is not an object.');
+		if(!is_object($factory)) throw new Err('Factory '.json_encode($id).' is not an object.: Dependency chain: '.implode(' > ', $dependencyChain));
 		$argValues=$this->extractArguments($def['args'],$dependencyChain);
 		try
 		{
