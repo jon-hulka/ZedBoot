@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     DI
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2018 - 2020, Jonathan Hulka
+ * @copyright   Copyright (c) 2018 - 2021, Jonathan Hulka
  */
 namespace ZedBoot\DI;
 use \ZedBoot\Error\ZBError as Err;
@@ -111,11 +111,11 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 
 	public function addFactoryService(string $id, string $factoryId, string $function, array $arguments = null, bool $singleton = true)
 	{
+		$parts = null;
 		if(!empty($this->currentNamespace))
 		{
-			$id=$this->currentNamespace.':'.$id;
-			//If the factory is local append its namespace
-			if(false === strpos($factoryId, ':')) $factoryId = $this->currentNamespace.':'.$factoryId;
+			$id = $this->currentNamespace.':'.$id;
+			$factoryId = $this->namespaceId($factoryId);
 			if($arguments !== null) $arguments = $this->namespaceArgs($arguments);
 		}
 		$this->dependencyIndex->addFactoryService($id, $factoryId, $function, $arguments, $singleton);
@@ -170,7 +170,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		$namespaced = [];
 		$k = null;
 		$arg = null;
-		$ns = null;
+		$path = null;
 		$parts = null;
 		foreach($args as $k => $arg)
 		{
@@ -181,30 +181,8 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 			}
 			else if(is_string($arg))
 			{
-				if(false === strpos($arg,':'))
-				{
-					//This is a dependency id with no namespace specified - apply current namespace
-					$namespaced[$k] = $this->currentNamespace.':'.$arg;
-				}
-				else if(strpos($arg, './') === 0)
-				{
-					//Relative namespace
-					$ns = substr($arg, 2);
-					$parts = explode('/', $this->currentNamespace);
-					if(count($parts) > 0)
-					{
-						//The relative namespace is at the parent level of the current - back up one level
-						array_pop($parts);
-						$parts[] = $ns;
-						$ns = implode('/', $parts);
-					}
-					$namespaced[$k] = $ns;
-				}
-				else
-				{
-					//Argument is already namespaced
-					$namespaced[$k] = $arg;
-				}
+				//Argument is a dependency id
+				$namespaced[$k] = $this->namespaceId($arg);
 			}
 			else
 			{
@@ -213,5 +191,34 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 			}
 		}
 		return $namespaced;
+	}
+
+	/**
+	 * @param string $dependencyId Dependency id as specified in the configuration.
+	 * @return string Fully namespaced dependency id.
+	 * @author Jon Hulka
+	 */
+	protected function namespaceId(string $dependencyId)
+	{
+		$result = $dependencyId;
+		//If the factory is local append its namespace
+		if(false === strpos($result, ':'))
+		{
+			$result = $this->currentNamespace.':'.$result;
+		}
+		else if(strpos($result, './') === 0)
+		{
+			//Relative namespace
+			$result = substr($result, 2);
+			$parts = explode('/', $this->currentNamespace);
+			if(count($parts) > 0)
+			{
+				//The relative namespace is at the parent level of the current - back up one level
+				array_pop($parts);
+				$parts[] = $result;
+				$result = implode('/', $parts);
+			}
+		}
+		return $result;
 	}
 }
