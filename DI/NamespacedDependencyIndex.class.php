@@ -16,7 +16,7 @@ use \ZedBoot\Error\ZBError as Err;
  * been loaded, it will be AND <namespace>: will be prepended to each local (namespace
  * not specified) id in the configuration parameters.<br>
  * Relative namespaces can be specified as './<ns-path>', For example, from namespace
- * 'foo/bar', the namespace path './baz:dep' refers to 'foo/baz:dep'.<br>  
+ * 'foo/bar', the namespace path './baz:dep' refers to 'foo/baz:dep'.<br>
  * Loading is handled by DependencyConfigLoader
  * The variable $diNamespace will be available to autoloaded dependency configuration scripts
  */
@@ -48,7 +48,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		$this->configLoader = $configLoader;
 		$this->dependencyIndex = $dependencyIndex;
 		$this->configPath = rtrim($configPath,'/');
-		$this->pathResolutionFunction = empty($pathResolutionFunction) 
+		$this->pathResolutionFunction = empty($pathResolutionFunction)
 			? function($configPath, $namespace)
 			{
 				return $this->configPath.'/'.$namespace.'.php';
@@ -200,10 +200,15 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 					}
 					$namespaced[$k] = $ns;
 				}
+				else
+				{
+					//Argument is already namespaced
+					$namespaced[$k] = $arg;
+				}
 			}
 			else
 			{
-				//Argument already has a namespace, or isn't a dependency id
+				//Argument is a scalar
 				$namespaced[$k] = $arg;
 			}
 		}

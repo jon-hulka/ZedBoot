@@ -113,7 +113,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		}
 		return $result;
 	}
-	
+
 	/**
 	 * Array elements are loaded fresh every time because the sources could be loaded by non-Singleton factories
 	 */
@@ -208,7 +208,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		if($def['singleton']) $this->singletons[$id]=$result;
 		return $result;
 	}
-	
+
 	protected function loadFactoryService(String $id,array $def,array $dependencyChain)
 	{
 		$result=false;
@@ -222,7 +222,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		if(false!==(array_search($factoryId,$dependencyChain,true)))
 			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$factoryId);
 		$factory=$this->loadDependency($factoryId,$dependencyChain);
-		if(!is_object($factory)) throw new Err('Factory '.json_encode($id).' is not an object.: Dependency chain: '.implode(' > ', $dependencyChain));
+		if(!is_object($factory)) throw new Err('Expected factory '.json_encode($factoryId).' to be an object. Got '.gettype($factory).': Dependency chain: '.implode(' > ', $dependencyChain));
 		$argValues=$this->extractArguments($def['args'],$dependencyChain);
 		try
 		{
@@ -237,7 +237,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		return $result;
 
 	}
-	
+
 	protected function checkSetterInjection($service,String $id)
 	{
 		$setterInjections=$this->dependencyIndex->getSetterInjections($id);
