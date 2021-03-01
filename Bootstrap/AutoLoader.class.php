@@ -1,5 +1,6 @@
 <?php
 namespace ZedBoot\Bootstrap;
+use \ZedBoot\Error\ZBError as Err;
 /**
  * Class AutoLoader | ZedBoot/Bootstrap/AutoLoader.class.php
  * @license     GNU General Public License, version 3
@@ -40,6 +41,7 @@ class AutoLoader
 		spl_autoload_register(function($className) use (&$loader)
 		{
 			$path=$loader->getPath($className);
+			if(!is_file($path)) throw new Err('File not found: '.$path);
 			//Non-empty $path indicates that the namespace was matched
 			//Load the file from the global namespace
 			if(!empty($path)) include($path);

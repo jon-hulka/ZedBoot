@@ -202,7 +202,7 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		}
 		catch(\Exception $e)
 		{
-			throw new Err('Loading dependency: '.$e->getMessage().': Dependency chain: '.implode(' > ', $dependencyChain).' > '.$id);
+			throw new Err('Loading dependency: '.$e->getMessage().': Dependency chain: '.implode(' > ', $dependencyChain));
 		}
 		if(is_object($result)) $this->checkSetterInjection($result,$id);
 		if($def['singleton']) $this->singletons[$id]=$result;
