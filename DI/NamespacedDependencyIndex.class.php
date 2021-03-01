@@ -63,14 +63,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 			$namespaced = [];
 			foreach($parameters as $id => $param)
 			{
-				if(strpos($id, ':') === false)
-				{
-					$namespaced[$this->currentNamespace.':'.$id] = $param;
-				}
-				else
-				{
-					$namespaced[$id] = $param;
-				}
+				$namespaced[$this->namespaceId($id)] = $param;
 			}
 			$parameters = $namespaced;
 		}
@@ -82,7 +75,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		if(!empty($this->currentNamespace))
 		{
 			$id = $this->currentNamespace.':'.$id;
-			if(strpos($arrayId, ':') === false) $arrayId = $this->currentNamespace.':'.$arrayId;
+			$arrayId = $this->namespaceId($arrayId);
 			[$ifNotExists] = $this->namespaceArgs([$ifNotExists]);
 		}
 		$this->dependencyIndex->addArrayElement($id, $arrayId, $arrayKey, $ifNotExists);
@@ -93,7 +86,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		if(!empty($this->currentNamespace))
 		{
 			$id = $this->currentNamespace.':'.$id;
-			if(strPos($objectId, ':') === false) $objectId=$this->currentNamespace.':'.$objectId;
+			$objectId = $this->namespaceId($objectId);
 			[$ifNotExists] = $this->namespaceArgs([$ifNotExists]);
 		}
 		$this->dependencyIndex->addObjectProperty($id, $objectId, $propertyName, $ifNotExists);
@@ -125,8 +118,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 	{
 		if(!empty($this->currentNamespace))
 		{
-			//If the service is local append its namespace
-			if(false === strpos($serviceId, ':')) $serviceId = $this->currentNamespace.':'.$serviceId;
+			$serviceId = $this->namespaceId($serviceId);
 			$arguments = $this->namespaceArgs($arguments);
 		}
 		$this->dependencyIndex->addSetterInjection($serviceId, $function, $arguments);
@@ -201,7 +193,7 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 	protected function namespaceId(string $dependencyId)
 	{
 		$result = $dependencyId;
-		//If the factory is local append its namespace
+		//If the id is local append its namespace
 		if(false === strpos($result, ':'))
 		{
 			$result = $this->currentNamespace.':'.$result;
