@@ -19,8 +19,9 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 	 * 'name' (required): user-friendly name
 	 * 'help' (required): text telling user what is expected in case of failure
 	 * 'required' (optional default false): boolean indicates whether value is required to be present
-	 * 'discard_empty' (optional default false): boolean indicates whether empty strings should be discarded from the result
-	 * 'empty_as_null' (optional default false): boolean indicates whether empty strings should be converted to null
+	 * 'discard_empty' (optional default false): boolean indicates whether empty strings will be discarded from the result
+	 * 'empty_as_null' (optional default false): boolean indicates whether empty strings will be converted to null (discard_empty overrides empty_as_null)
+	 * 'trim_whitespace' (optional default true): boolean indicates whether whitespace will be trimmed
 	 * custom handlers can be assigned to any of the filter types
 	 * If 'required' and 'discard_empty' are both set, an empty string for that field will cause an error status
 	 */
@@ -34,57 +35,60 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 	 */
 	public function __construct(
 		array $definitions,
-		array $customHandlers=[]
+		array $customHandlers = []
 	)
 	{
-		$this->handlers=$customHandlers;
-		$badDefs=[];
-		$errs=[];
-		$required=['filter','name','help'];
+		$this->handlers = $customHandlers;
+		$badDefs = [];
+		$errs = [];
+		$required = ['filter','name','help'];
 		//Find any errors in handlers and definitions
-		foreach($this->handlers as $k=>$h) if(!array_key_exists($k,$badDefs))
+		foreach($this->handlers as $k => $h) if(!array_key_exists($k, $badDefs))
 		{
 			if(!is_object($h) || !($h instanceof \ZedBoot\Validation\FilterHandlerInterface))
 			{
-				$errs[]='$customHandlers['.$k.']: expected \\ZedBoot\\Validation\\FilterHandlerInterface, got '.$this->getTypeString($h);
+				$errs[] = '$customHandlers['.$k.']: expected \\ZedBoot\\Validation\\FilterHandlerInterface, got '.$this->getTypeString($h);
 			}
 		}
-		foreach($definitions as $k=>$def) if(!array_key_exists($k,$badDefs))
+		foreach($definitions as $k => $def) if(!array_key_exists($k, $badDefs))
 		{
-			$missing=[];
+			$missing = [];
 			if(!is_array($def))
 			{
-				$badDefs[$k]=$k;
-				$errs[]='$definitions['.$k.']: expected array, got '.$this->getTypeString($def);
+				$badDefs[$k] = $k;
+				$errs[] = '$definitions['.$k.']: expected array, got '.$this->getTypeString($def);
 			}
-			else foreach($required as $req) if(!array_key_exists($req,$def)) $errs[]='Missing $definitions['.$k.']['.$req.']';
+			else foreach($required as $req) if(!array_key_exists($req, $def)) $errs[] = 'Missing $definitions['.$k.']['.$req.']';
 		}
-		foreach($definitions as $k=>$def) if(!array_key_exists($k,$badDefs))
+		foreach($definitions as $k => $def) if(!array_key_exists($k, $badDefs))
 		{
-			$filter=$def['filter'];
-			if(!array_key_exists('options',$def)) $def['options']=[];
-			if(!array_key_exists('flags',$def)) $def['flags']=null;
-			if(array_key_exists($filter,$this->handlers))
+			$filter = $def['filter'];
+			if(!array_key_exists('options', $def)) $def['options'] = [];
+			if(!array_key_exists('flags', $def)) $def['flags'] = null;
+			if(array_key_exists($filter, $this->handlers))
 			{
 				unset($def['filter']);
-				$def['filter_handler']=$this->handlers[$filter];
+				$def['filter_handler'] = $this->handlers[$filter];
 			}
 			else if(!is_int($def['filter']))
 			{
-				$badDefs[$k]=$k;
-				$errs[]='$definitions['.$k.'][\'filter\']: non-integer filter type with no custom handler. Expected int or $customHandlers key, got '.$this->getTypeString($def['filter']);
+				$badDefs[$k] = $k;
+				$errs[] = '$definitions['.$k.'][\'filter\']: non-integer filter type with no custom handler. Expected int or $customHandlers key, got '.$this->getTypeString($def['filter']);
 			}
 			if(!is_string($def['name']))
 			{
-				$badDefs[$k]=$k;
-				$errs[]='$definitions['.$k.'][\'name\']: expected string, got '.$this->getTypeString($def['name']);
+				$badDefs[$k] = $k;
+				$errs[] = '$definitions['.$k.'][\'name\']: expected string, got '.$this->getTypeString($def['name']);
 			}
 			if(!is_string($def['help']))
 			{
-				$badDefs[$k]=$k;
-				$errs[]='$definitions['.$k.'][\'help\']: expected string, got '.$this->getTypeString($def['help']);
+				$badDefs[$k] = $k;
+				$errs[] = '$definitions['.$k.'][\'help\']: expected string, got '.$this->getTypeString($def['help']);
 			}
-			$this->definitions[$k]=$def;
+			$def['required'] = !empty($def['required']);
+			$def['empty_as_null'] = !empty($def['empty_as_null']);
+			$def['trim_whitespace'] = !array_key_exists('trim_whitespace', $def) || !empty($def['trim_whitespace']);
+			$this->definitions[$k] = $def;
 		}
 		if(count($errs)>0) throw new \Exception(implode(PHP_EOL,$errs));
 	}
@@ -100,55 +104,57 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 
 	public function validate(array $parameters) : array
 	{
-		$ok=true;
-		$result=false;
-		$messages=[];
-		$vs=[];
+		$ok = true;
+		$result = false;
+		$messages = [];
+		$vs = [];
 		//Only apply filters to parameters that are present
-		$toApply=[];
-		if($ok) foreach($this->definitions as $k=>$def)
+		$toApply = [];
+		if($ok) foreach($this->definitions as $k => $def)
 		{
-			if(array_key_exists($k,$parameters))
+			if(array_key_exists($k, $parameters))
 			{
-				$parameters[$k]=strval($parameters[$k]);
-				if(strlen($parameters[$k])===0 && !empty($def['discard_empty'])) unset($parameters[$k]);
+				$parameters[$k] = strval($parameters[$k]);
+				if($def['trim_whitespace']) $parameters[$k] = trim($parameters[$k]);
+				if(strlen($parameters[$k]) === 0 && !empty($def['discard_empty'])) unset($parameters[$k]);
 			}
-			if(array_key_exists($k,$parameters))
+			if(array_key_exists($k, $parameters))
 			{
-				$toApply[$k]=$def;
+				$toApply[$k] = $def;
 			}
-			else if(!empty($def['required']))
+			else if($def['required'])
 			{
-				$ok=false;
-				$messages[$k]=$def['name'].' is required.';
+				$ok = false;
+				$messages[$k] = $def['name'].' is required.';
 			}
 		}
-		if($ok) foreach($toApply as $k=>$def)
+
+		foreach($toApply as $k => $def)
 		{
-			$in=$parameters[$k];
-			$out=null;
-			if(strlen($in)>0 || empty($def['empty_as_null']))
+			$in = $parameters[$k];
+			$out = null;
+			if(strlen($in) > 0 || !$def['empty_as_null'])
 			{
 				if(array_key_exists('filter',$def))
 				{
 					//Options and flags must be nested in the $options parameter
-					$options=['options'=>$def['options']];
-					if($def['flags']!==null) $options['flags']=$def['flags'];
-					$out=filter_var($in,$def['filter'],$options);
+					$options = ['options' => $def['options']];
+					if($def['flags'] !== null) $options['flags'] = $def['flags'];
+					$out = filter_var($in, $def['filter'], $options);
 				}
 				else
 				{
 					//This one has a custom handler
-					$out=$def['filter_handler']->applyFilter($in,$def['options'],$def['flags']);
+					$out = $def['filter_handler']->applyFilter($in, $def['options'], $def['flags']);
 				}
-				if($out===false)
+				if($out === false)
 				{
-					$ok=false;
-					$messages[$k]=$def['help'];
+					$ok = false;
+					$messages[$k] = $def['help'];
 				}
 			}
 			//else input is empty string and empty_as_null is specified - $out is already null
-			$vs[$k]=$out;
+			$vs[$k] = $out;
 		}
 		if($ok)
 		{
