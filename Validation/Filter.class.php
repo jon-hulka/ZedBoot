@@ -17,7 +17,7 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 	/**
 	 * Additional elements allowed and/or required by filter definitions (not in the options array):
 	 * 'name' (required): user-friendly name
-	 * 'help' (required): text telling user what is expected in case of failure
+	 * 'help' (required): text telling user what is expected in case of failure. Handlers may override this.
 	 * 'required' (optional default false): boolean indicates whether value is required to be present
 	 * 'discard_empty' (optional default false): boolean indicates whether empty strings will be discarded from the result
 	 * 'empty_as_null' (optional default false): boolean indicates whether empty strings will be converted to null (discard_empty overrides empty_as_null)
@@ -43,11 +43,11 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 		$errs = [];
 		$required = ['filter','name','help'];
 		//Find any errors in handlers and definitions
-		foreach($this->handlers as $k => $h) if(!array_key_exists($k, $badDefs))
+		foreach($this->handlers as $k => $h)
 		{
 			if(!is_object($h) || !($h instanceof \ZedBoot\Validation\FilterHandlerInterface))
 			{
-				$errs[] = '$customHandlers['.$k.']: expected \\ZedBoot\\Validation\\FilterHandlerInterface, got '.$this->getTypeString($h);
+				throw new \Exception('$customHandlers['.$k.']: expected \\ZedBoot\\Validation\\FilterHandlerInterface, got '.$this->getTypeString($h));
 			}
 		}
 		foreach($definitions as $k => $def) if(!array_key_exists($k, $badDefs))
@@ -131,6 +131,7 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 
 		foreach($toApply as $k => $def)
 		{
+			$msg = null;
 			$in = $parameters[$k];
 			$out = null;
 			if(strlen($in) > 0 || !$def['empty_as_null'])
@@ -145,12 +146,13 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 				else
 				{
 					//This one has a custom handler
-					$out = $def['filter_handler']->applyFilter($in, $def['options'], $def['flags']);
+					$out = $def['filter_handler']->applyFilter($in, $def['name'], $def['options'], $def['flags']);
+					if(!$out) $msg = $def['filter_handler']->getMessage();
 				}
 				if($out === false)
 				{
 					$ok = false;
-					$messages[$k] = $def['help'];
+					$messages[$k] = $msg === null ? $def['help'] : $msg;
 				}
 			}
 			//else input is empty string and empty_as_null is specified - $out is already null

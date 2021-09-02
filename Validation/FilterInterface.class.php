@@ -19,5 +19,5 @@ interface FilterInterface
 	 * 
 	 * @return array ['status' => 'success', 'data' => [...]] or ['status' => 'error', 'messages' => [...]]
 	 */
-	public function validate(Array $parameters) : array;
+	public function validate(array $parameters) : array;
 }
