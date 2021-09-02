@@ -19,7 +19,7 @@ class TimeFilterHandler implements \ZedBoot\Validation\FilterHandlerInterface
 	 *   timezone
 	 *   format - any string accepted by DateTime->format() - default 'H:i:s'
 	 */
-	public function applyFilter($value, string $name, array $options, array $flags=null)
+	public function applyFilter(string $value, string $name, array $options, array $flags=null)
 	{
 		$result=false;
 		$dt=null;

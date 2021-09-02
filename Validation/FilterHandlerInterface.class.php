@@ -10,7 +10,7 @@
 namespace ZedBoot\Validation;
 interface FilterHandlerInterface
 {
-	public function applyFilter($value, string $name, array $options, ?array $flags = null);
+	public function applyFilter(string $value, string $name, array $options, ?array $flags = null);
 	/**
 	 * If applyFilter() returns a negative value, provides an optional custom error message.
 	 */

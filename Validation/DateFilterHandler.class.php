@@ -19,7 +19,7 @@ class DateFilterHandler implements \ZedBoot\Validation\FilterHandlerInterface
 	 *   timezone
 	 *   format - any string accepted by DateTime->format() - default 'Y-m-d'
 	 */
-	public function applyFilter($value, string $name, array $options, array $flags=null)
+	public function applyFilter(string $value, string $name, array $options, array $flags=null)
 	{
 		$result=false;
 		$dt=null;
