@@ -15,28 +15,36 @@ use \ZedBoot\Error\ZBError as Err;
  */
 class AutoLoader
 {
+	protected static
+		$loaders = [];
+
 	protected
 		//Set up by findPath
 		$suffix,
 		//Set up by findPath
 		$prefix,
 		//Nested array of namespaces and paths - the 'path' element indicates that that level is mapped
-		//array(
-		//	'NS'=>array( // \NS is not mapped to any path, it is here because sub-namespaces are mapped
-		//		'subs'=>array(
-		//			'NSOTHER'=>array( // \NS\NSOTHER is mapped to /another_path
-		//				'subs'=>array(...),
-		//				'path'=>'/another_path',
-		//				'suffix'=>'.class.php', //default prefix and suffix for class file names
-		//				'prefix'=>''
-		//			),
-		//			'NSTHAT'=>array(...) //And so on...
-		//		)
-		//	)
-		//)
-		$namespaces=array();
+		//[
+		//  'NS' => 
+		//  [ // \NS is not mapped to any path, it is here because sub-namespaces are mapped
+		//    'subs' =>
+		//    [
+		//      'NSOTHER' =>
+		//       [ // \NS\NSOTHER is mapped to /another_path
+		//        'subs' => [...],
+		//        'path' => '/another_path',
+		//        'suffix' => '.class.php', //default prefix and suffix for class file names
+		//        'prefix' => ''
+		//      ],
+		//      'NSTHAT' => [...] //And so on...
+		//    ]
+		//  ]
+		//]
+		$namespaces = [];
 	public function __construct()
 	{
+		static::$loaders[] = $this;
+/*
 		$loader=$this;
 		spl_autoload_register(function($className) use (&$loader)
 		{
@@ -46,7 +54,27 @@ class AutoLoader
 			//Load the file from the global namespace
 			if(!empty($path)) include($path);
 		});
+*/
 	}
+
+	public static function getPathAll($className)
+	{
+		$result = null;
+		foreach(static::$loaders as $loader)
+		{
+			$path = $loader->getPath($className);
+			if(!is_file($path)) throw new Err('File not found: '.$path);
+			//Non-empty $path indicates that the namespace was matched
+			//Load the file from the global namespace
+			if(!empty($path))
+			{
+				$result = $path;
+				break;
+			}
+		}
+		return $path;
+	}
+
 	/**
 	 * Maps a namespace to a directory
 	 * Sub-namespaces will be loaded as subdirectories, unless explicitly mapped.
@@ -56,25 +84,25 @@ class AutoLoader
 	 * @param string $prefix part of file name preceding the class name (normally empty)
 	 * @return void
 	 */
-	public function register($namespace,$path,$suffix='.class.php',$prefix='')
+	public function register($namespace, $path, $suffix='.class.php', $prefix='')
 	{
 		if(!empty($namespace))
 		{
-			$index=&$this->namespaces;
+			$index = &$this->namespaces;
 			//Break the namespace into segments
-			$parts=explode('\\',trim($namespace,'\\'));
-			$partIndex=null;
-			while(!is_null($part=array_shift($parts)))
+			$parts = explode('\\',trim($namespace,'\\'));
+			$partIndex = null;
+			while(!is_null($part = array_shift($parts)))
 			{
-				if(!array_key_exists($part,$index)) $index[$part]=array('subs'=>array());
-				$partIndex=&$index[$part];
-				$index=&$index[$part]['subs'];
+				if(!array_key_exists($part, $index)) $index[$part] = ['subs' => []];
+				$partIndex = &$index[$part];
+				$index = &$index[$part]['subs'];
 			}
 			if(is_array($partIndex))
 			{
-				$partIndex['path']=$path;
-				$partIndex['suffix']=$suffix;
-				$partIndex['prefix']=$prefix;
+				$partIndex['path'] = $path;
+				$partIndex['suffix'] = $suffix;
+				$partIndex['prefix'] = $prefix;
 			}
 		}
 	}
@@ -85,20 +113,20 @@ class AutoLoader
 	 */
 	public function getPath($className)
 	{
-		$result=null;
-		$parts=explode('\\',trim($className,'\\'));
-		if(count($parts)>1)
+		$result = null;
+		$parts = explode('\\', trim($className, '\\'));
+		if(count($parts) > 1)
 		{
 			//Last item is the class name - don't process it
-			$className=array_pop($parts);
+			$className = array_pop($parts);
 			//$parts is modified by findPath
-			$result=$this->findPath($parts,$this->namespaces);
-			if($result!==null)
+			$result = $this->findPath($parts, $this->namespaces);
+			if($result !== null)
 			{
 				//The remaining elements of $parts are subdirectories of the namespace top level directory
 				//Put the class name back
-				$parts[]=$this->prefix.$className.$this->suffix;
-				$result.=DIRECTORY_SEPARATOR.implode(DIRECTORY_SEPARATOR, $parts);
+				$parts[] = $this->prefix.$className.$this->suffix;
+				$result .= DIRECTORY_SEPARATOR.implode(DIRECTORY_SEPARATOR, $parts);
 			}
 		}
 		return $result;
@@ -113,33 +141,48 @@ class AutoLoader
 	 * @param string|null $path path at current level of recursion
 	 * @return string|null result path or null if none found
 	 */
-	protected function findPath(Array &$parts,Array $index,$path=null)
+	protected function findPath(array &$parts, array $index, $path=null)
 	{
-		$result=null;
-		if(count($parts)>0)
+		$result = null;
+		if(count($parts) > 0)
 		{
 			//Try the next level in
-			$part=array_shift($parts);
-			if(array_key_exists($part,$index))
+			$part = array_shift($parts);
+			if(array_key_exists($part, $index))
 			{
-				$p=null;
-				if(array_key_exists('path',$index[$part]))
+				$p = null;
+				if(array_key_exists('path', $index[$part]))
 				{
 					//Presence of 'path' attribute indicates namespace registered at this level
-					$p=$index[$part]['path'];
+					$p = $index[$part]['path'];
 					//Get prefix and suffix out to top level of recursion
-					$this->suffix=$index[$part]['suffix'];
-					$this->prefix=$index[$part]['prefix'];
+					$this->suffix = $index[$part]['suffix'];
+					$this->prefix = $index[$part]['prefix'];
 				}
-				$result=$this->findPath($parts,$index[$part]['subs'],$p);
+				$result = $this->findPath($parts, $index[$part]['subs'],$p);
 			}
 			if(is_null($result))
 				//Not found - rewind to next level out
-				array_unshift($parts,$part);
+				array_unshift($parts, $part);
 		}
 		if(is_null($result) && !empty($path))
 			//End condition - no deeper level found and there is a path at this level
-			$result=$path;
+			$result = $path;
 		return $result;
 	}
 }
+
+//If the autoload function is defined inside the class scripts are loaded as part of the class
+//This keeps them on the outside
+spl_autoload_register
+(
+	function($className)
+	{
+		$path = \ZedBoot\Bootstrap\AutoLoader::getPathAll($className);
+		if($path)
+		{
+			unset($className);
+			include($path);
+		}
+	}
+);
