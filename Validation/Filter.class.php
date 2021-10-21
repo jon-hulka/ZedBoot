@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     Validation
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2019 Jonathan Hulka
+ * @copyright   Copyright (c) 2019 - 2021 Jonathan Hulka
  */
 
 /**
@@ -38,10 +38,10 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 		array $customHandlers = []
 	)
 	{
+		$this->definitions = [];
 		$this->handlers = $customHandlers;
 		$badDefs = [];
 		$errs = [];
-		$required = ['filter','name','help'];
 		//Find any errors in handlers and definitions
 		foreach($this->handlers as $k => $h)
 		{
@@ -50,47 +50,63 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 				throw new \Exception('$customHandlers['.$k.']: expected \\ZedBoot\\Validation\\FilterHandlerInterface, got '.$this->getTypeString($h));
 			}
 		}
-		foreach($definitions as $k => $def) if(!array_key_exists($k, $badDefs))
+		foreach($definitions as $k => $def) $this->initDefinition($k, $def, $badDefs, $errs);
+		if(!empty($errs)) throw new \Exception(implode(PHP_EOL, $errs));
+	}
+
+	protected function initDefinition($k, $def, array &$badDefs, array &$errs)
+	{
+		$ok = true;
+		$filter = null;
+		if($ok)
 		{
-			$missing = [];
 			if(!is_array($def))
 			{
+				$ok = false;
 				$badDefs[$k] = $k;
 				$errs[] = '$definitions['.$k.']: expected array, got '.$this->getTypeString($def);
 			}
-			else foreach($required as $req) if(!array_key_exists($req, $def)) $errs[] = 'Missing $definitions['.$k.']['.$req.']';
+			else foreach(['filter', 'name', 'help'] as $req) if(!array_key_exists($req, $def))
+			{
+				$ok = false;
+				$badDefs[$k] = $k;
+				$errs[] = 'Missing $definitions['.$k.']['.$req.']';
+			}
 		}
-		foreach($definitions as $k => $def) if(!array_key_exists($k, $badDefs))
+		if($ok)
 		{
 			$filter = $def['filter'];
-			if(!array_key_exists('options', $def)) $def['options'] = [];
-			if(!array_key_exists('flags', $def)) $def['flags'] = null;
+			if(!is_scalar($filter))
+			{
+				$ok = false;
+				$badDefs[$k] = $k;
+				$errs[] = '$definitions['.$k.'][\'filter\']: expected scalar, got '.$this->getTypeString($filter).'.';
+			}
+		}
+		if($ok)
+		{
 			if(array_key_exists($filter, $this->handlers))
 			{
 				unset($def['filter']);
 				$def['filter_handler'] = $this->handlers[$filter];
 			}
-			else if(!is_int($def['filter']))
+			foreach(['filter' => 'integer', 'name' => 'string', 'help' => 'string'] as $name => $type) if(array_key_exists($name, $def) && gettype($def[$name]) !== $type)
 			{
 				$badDefs[$k] = $k;
-				$errs[] = '$definitions['.$k.'][\'filter\']: non-integer filter type with no custom handler. Expected int or $customHandlers key, got '.$this->getTypeString($def['filter']);
+				$ok = false;
+				$errs[] = '$definitions['.$k.'][\''.$name.'\']: expected '.$type.', got '.$this->getTypeString($def[$name]).'.';
 			}
-			if(!is_string($def['name']))
-			{
-				$badDefs[$k] = $k;
-				$errs[] = '$definitions['.$k.'][\'name\']: expected string, got '.$this->getTypeString($def['name']);
-			}
-			if(!is_string($def['help']))
-			{
-				$badDefs[$k] = $k;
-				$errs[] = '$definitions['.$k.'][\'help\']: expected string, got '.$this->getTypeString($def['help']);
-			}
+		}
+		if($ok)
+		{
+			if(!array_key_exists('options', $def)) $def['options'] = [];
+			if(!array_key_exists('flags', $def)) $def['flags'] = null;
 			$def['required'] = !empty($def['required']);
 			$def['empty_as_null'] = !empty($def['empty_as_null']);
+			//Trim whitespace by default
 			$def['trim_whitespace'] = !array_key_exists('trim_whitespace', $def) || !empty($def['trim_whitespace']);
 			$this->definitions[$k] = $def;
 		}
-		if(count($errs)>0) throw new \Exception(implode(PHP_EOL,$errs));
 	}
 
 	protected function getTypeString($v)
