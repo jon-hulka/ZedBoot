@@ -4,3 +4,5 @@ PHP framework providing:
  - Dependency injection
  - URL routing
  - Class autoloading
+ - Form validation
+ - Some basic utilities
