@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     DI
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2017 - 2020 Jonathan Hulka
+ * @copyright   Copyright (c) 2017 - 2021 Jonathan Hulka
  */
 
 /**
@@ -58,19 +58,21 @@ class DependencyConfigLoader
 		array $configParameters = []
 	)
 	{
-		$parameters=null;
-		$arrayElements=null;
-		$objectProperties=null;
-		$services=null;
-		$factoryServices=null;
-		$includes=null;
-		$setterInjections=null;
+		$parameters = null;
+		$aliases = null;
+		$arrayElements = null;
+		$objectProperties = null;
+		$services = null;
+		$factoryServices = null;
+		$includes = null;
+		$setterInjections = null;
 		if(!file_exists($path)) throw new Err('Config file '.$path.' not found');
-		$cf=static::$configFunction;
+		$cf = static::$configFunction;
 		$cf
 		(
 			$path,
 			$parameters,
+			$aliases,
 			$arrayElements,
 			$objectProperties,
 			$services,
@@ -84,6 +86,13 @@ class DependencyConfigLoader
 			if(!is_array($parameters)) throw new Err('$parameters is not an array in config file '.$path);
 			$dependencyIndex->addParameters($parameters);
 		}
+
+		if($aliases !== null)
+		{
+			if(!is_array($parameters)) throw new Err('$aliases is not an array in config file '.$path);
+			$this->addAliases($dependencyIndex, $aliases, $path);
+		}
+
 		if($arrayElements!==null)
 		{
 			if(!is_array($arrayElements)) throw new Err('$arrayElements is not an array in config file '.$path);
@@ -131,6 +140,18 @@ class DependencyConfigLoader
 		{
 			if(!is_array($setterInjections)) throw new Err('$setterInjections is not an array in config file '.$path);
 			$this->addSetterInjections($dependencyIndex, $setterInjections, $path);
+		}
+	}
+
+	protected function addAliases($dependencyIndex, $aliases, $path)
+	{
+		foreach($aliases as $id => $aliasOfId)
+		{
+			if(!is_string($aliasOfId)) throw new Err
+			(
+				'Config file '.$path.': alias '.json_encode($id).': Aliased dependency index must be a string.'
+			);
+			$dependencyIndex->addAlias($id, $aliasOfId);
 		}
 	}
 
@@ -289,6 +310,7 @@ DependencyConfigLoader::setConfigFunction
 	(
 		$__path,
 		&$parameters,
+		&$aliases,
 		&$arrayElements,
 		&$objectProperties,
 		&$services,

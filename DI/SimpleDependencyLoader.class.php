@@ -5,7 +5,7 @@
  * @license     GNU General Public License, version 3
  * @package     DI
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2017 - 2020, Jonathan Hulka
+ * @copyright   Copyright (c) 2017 - 2021, Jonathan Hulka
  */
 
 /**
@@ -63,16 +63,16 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 		$result=false;
 		try
 		{
-			if(array_key_exists($id,$this->singletons))
+			if(array_key_exists($id, $this->singletons))
 			{
 				//Dependency has already been loaded
-				$result=$this->singletons[$id];
+				$result = $this->singletons[$id];
 			}
 			else
 			{
 				try
 				{
-					$def=$this->dependencyIndex->getDependencyDefinition($id);
+					$def = $this->dependencyIndex->getDependencyDefinition($id);
 				}
 				catch(\Exception $e)
 				{
@@ -81,19 +81,22 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 				switch($def['type'])
 				{
 					case 'parameter':
-						$result=$def['value'];
+						$result = $def['value'];
+						break;
+					case 'alias':
+						$result = $this->loadAlias($id, $def, $dependencyChain);
 						break;
 					case 'array element':
-						$result=$this->loadArrayElement($id, $def,$dependencyChain);
+						$result = $this->loadArrayElement($id, $def, $dependencyChain);
 						break;
 					case 'object property':
-						$result=$this->loadObjectProperty($id, $def,$dependencyChain);
+						$result = $this->loadObjectProperty($id, $def, $dependencyChain);
 						break;
 					case 'service':
-						$result=$this->loadService($id,$def,$dependencyChain);
+						$result = $this->loadService($id, $def, $dependencyChain);
 						break;
 					case 'factory service':
-						$result=$this->loadFactoryService($id,$def,$dependencyChain);
+						$result = $this->loadFactoryService($id, $def, $dependencyChain);
 						break;
 				}
 			}
@@ -106,12 +109,21 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 			}
 			else
 			{
-				$chain=$dependencyChain;
-				$chain[]=$id;
-				throw new \ZedBoot\DI\DependencyLoaderException('Error loading '.$id,0,$e,$chain);
+				$chain = $dependencyChain;
+				$chain[] = $id;
+				throw new \ZedBoot\DI\DependencyLoaderException('Error loading '.$id, 0, $e, $chain);
 			}
 		}
 		return $result;
+	}
+
+	protected function loadAlias(string $id, array $def, array $dependencyChain)
+	{
+		//Make sure this alias is not its own ancestor
+		if(false !== (array_search($id, $dependencyChain, true)))
+			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$id);
+		$dependencyChain[] = $id;
+		return $this->loadDependency($def['alias_of_id'], $dependencyChain);
 	}
 
 	/**
@@ -120,28 +132,28 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 	protected function loadArrayElement(string $id, array $def, array $dependencyChain)
 	{
 		$result=null;
-		$ne=$def['if_not_exists'];
+		$ne = $def['if_not_exists'];
 		//Make sure this array is not its own ancestor
-		if(false!==(array_search($id,$dependencyChain,true)))
+		if(false!==(array_search($id, $dependencyChain, true)))
 			throw new Err('Circular dependency: '.implode(' > ',$dependencyChain).' > '.$id);
-		$dependencyChain[]=$id;
-		$arr=$this->loadDependency($def['array_id'], $dependencyChain);
+		$dependencyChain[] = $id;
+		$arr = $this->loadDependency($def['array_id'], $dependencyChain);
 		if(!is_array($arr)) throw new Err($id.' arrayId: Expected '.$def['array_id'].' to be array, got '.gettype($arr));
-		if(array_key_exists($def['key'],$arr))
+		if(array_key_exists($def['key'], $arr))
 		{
-			$result=$arr[$def['key']];
+			$result = $arr[$def['key']];
 		}
 		else if(is_string($ne))
 		{
-			$result=$this->loadDependency($ne, $dependencyChain);
+			$result = $this->loadDependency($ne, $dependencyChain);
 		}
 		else if(is_array($ne))
 		{
-			$result=$this->extractArguments($ne,$dependencyChain,true,'array element');
+			$result = $this->extractArguments($ne, $dependencyChain, true, 'array element');
 		}
 		else
 		{
-			$result=$ne;
+			$result = $ne;
 		}
 		return $result;
 	}
@@ -250,22 +262,22 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 
 	protected function extractArguments(array $args, array $dependencyChain, bool $preserveKeys=false, $entityName='argument')
 	{
-		$argValues=[];
-		$v=null;
-		foreach($args as $k=>$arg)
+		$argValues = [];
+		$v = null;
+		foreach($args as $k => $arg)
 		{
 			if(is_array($arg))
 			{
 				//Recursively handle nested arrays
-				$v=$this->extractArguments($arg,$dependencyChain,true, 'array element');
+				$v = $this->extractArguments($arg, $dependencyChain, true, 'array element');
 			}
 			else if(is_string($arg))
 			{
-				$v=$this->loadDependency($arg,$dependencyChain);
+				$v = $this->loadDependency($arg,$dependencyChain);
 			}
 			else if(is_scalar($arg) || is_null($arg))
 			{
-				$v=$arg;
+				$v = $arg;
 			}
 			else
 			{
@@ -273,9 +285,9 @@ class SimpleDependencyLoader implements \ZedBoot\DI\DependencyLoaderInterface
 			}
 			if($preserveKeys)
 			{
-				$argValues[$k]=$v;
+				$argValues[$k] = $v;
 			}
-			else $argValues[]=$v;
+			else $argValues[] = $v;
 		}
 		return $argValues;
 	}

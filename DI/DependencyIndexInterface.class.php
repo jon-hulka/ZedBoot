@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     DI
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2018 - 2020, Jonathan Hulka
+ * @copyright   Copyright (c) 2018 - 2021, Jonathan Hulka
  */
 
 /**
@@ -18,6 +18,11 @@ interface DependencyIndexInterface
 	 * @param Array $parameters keys cannot conflict with existing dependency ids
 	 */
 	public function addParameters(array $parameters);
+	/**
+	 * @param string $id unique dependency id for the alias, cannot conflict with existing dependency ids
+	 * @param string $indexOfId dependency id of the aliased dependency
+	 */
+	public function addAlias(string $id, string $indexOfId);
 	/**
 	 * @param string $id unique dependency id for the parameter, cannot conflict with existing dependency ids
 	 * @param string $arrayId dependency id of the array

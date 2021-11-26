@@ -70,6 +70,16 @@ class NamespacedDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 		$this->dependencyIndex->addParameters($parameters);
 	}
 
+	public function addAlias(string $id, string $indexOfId)
+	{
+		if(!empty($this->currentNamespace))
+		{
+			$indexOfId = $this->namespaceId($indexOfId);
+			$id = $this->currentNamespace.':'.$id;
+		}
+		$this->dependencyIndex->addAlias($id, $indexOfId);
+	}
+
 	public function addArrayElement(string $id, string $arrayId, string $arrayKey, $ifNotExists = null)
 	{
 		if(!empty($this->currentNamespace))

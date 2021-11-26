@@ -4,7 +4,7 @@
  * @license     GNU General Public License, version 3
  * @package     DI
  * @author      Jonathan Hulka <jon.hulka@gmail.com>
- * @copyright   Copyright (c) 2018 - 2020, Jonathan Hulka
+ * @copyright   Copyright (c) 2018 - 2021, Jonathan Hulka
  */
 namespace ZedBoot\DI;
 use \ZedBoot\Error\ZBError as Err;
@@ -13,13 +13,31 @@ class SimpleDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 	protected
 		$definitions=[],
 		$setterInjections=[];
+
 	public function addParameters(array $parameters)
 	{
-		foreach($parameters as $id=>$def) $this->addDefinition($id,[
-			'type'=>'parameter',
-			'value'=>$def
-		]);
+		foreach($parameters as $id=>$def) $this->addDefinition
+		(
+			$id,
+			[
+				'type' => 'parameter',
+				'value' => $def
+			]
+		);
 	}
+
+	public function addAlias(string $id, string $aliasOfId)
+	{
+		$this->addDefinition
+		(
+			$id,
+			[
+				'type' => 'alias',
+				'alias_of_id' => $aliasOfId
+			]
+		);
+	}
+
 	public function addArrayElement(string $id, string $arrayId, string $arrayKey, $ifNotExists=null)
 	{
 		$this->addDefinition
@@ -33,6 +51,7 @@ class SimpleDependencyIndex implements \ZedBoot\DI\DependencyIndexInterface
 			]
 		);
 	}
+
 	public function addObjectProperty(string $id, string $objectId, string $propertyName, $ifNotExists=null)
 	{
 		$this->addDefinition
