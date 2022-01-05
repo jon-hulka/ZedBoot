@@ -1,5 +1,6 @@
 <?php
 namespace ZedBoot\Bootstrap;
+require_once(dirname(__DIR__).'/Error/ZBError.class.php');
 use \ZedBoot\Error\ZBError as Err;
 /**
  * Class AutoLoader | ZedBoot/Bootstrap/AutoLoader.class.php
@@ -44,17 +45,6 @@ class AutoLoader
 	public function __construct()
 	{
 		static::$loaders[] = $this;
-/*
-		$loader=$this;
-		spl_autoload_register(function($className) use (&$loader)
-		{
-			$path=$loader->getPath($className);
-			if(!is_file($path)) throw new Err('File not found: '.$path);
-			//Non-empty $path indicates that the namespace was matched
-			//Load the file from the global namespace
-			if(!empty($path)) include($path);
-		});
-*/
 	}
 
 	public static function getPathAll($className)
@@ -63,16 +53,16 @@ class AutoLoader
 		foreach(static::$loaders as $loader)
 		{
 			$path = $loader->getPath($className);
-			if(!is_file($path)) throw new Err('File not found: '.$path);
-			//Non-empty $path indicates that the namespace was matched
-			//Load the file from the global namespace
-			if(!empty($path))
+			if($path !== null)
 			{
+				if(!is_file($path)) throw new Err('Loading '.$className.': File not found: '.$path);
+				//Non-empty $path indicates that the namespace was matched
+				//Load the file from the global namespace
 				$result = $path;
 				break;
 			}
 		}
-		return $path;
+		return $result;
 	}
 
 	/**
