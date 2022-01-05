@@ -86,13 +86,11 @@ class DependencyConfigLoader
 			if(!is_array($parameters)) throw new Err('$parameters is not an array in config file '.$path);
 			$dependencyIndex->addParameters($parameters);
 		}
-
 		if($aliases !== null)
 		{
-			if(!is_array($parameters)) throw new Err('$aliases is not an array in config file '.$path);
+			if(!is_array($aliases)) throw new Err('$aliases is not an array in config file '.$path);
 			$this->addAliases($dependencyIndex, $aliases, $path);
 		}
-
 		if($arrayElements!==null)
 		{
 			if(!is_array($arrayElements)) throw new Err('$arrayElements is not an array in config file '.$path);
