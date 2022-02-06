@@ -74,13 +74,13 @@ function zbInit
 	{
 		//autoloader and dependency loader are hardwired here because they are neccessary to get everything else up and running
 		//Set up the ZedBoot namespace
-		$zbClassPath=rtrim($zbClassPath,'/');
+		$zbClassPath = rtrim($zbClassPath, '/');
 		require_once $zbClassPath.'/Bootstrap/AutoLoader.class.php';
-		$loader=new \ZedBoot\Bootstrap\Autoloader();
-		$loader->register('ZedBoot',$zbClassPath);
+		$loader = new \ZedBoot\Bootstrap\Autoloader();
+		$loader->register('ZedBoot', $zbClassPath);
 
 		//Set up the dependency loader
-		$configLoader=new \ZedBoot\DI\DependencyConfigLoader();
+		$configLoader = new \ZedBoot\DI\DependencyConfigLoader();
 
 		//$dependencyIndex finds and loads namespaced dependency configuration files as needed by $dependencyLoader
 		$dependencyIndex = new \ZedBoot\DI\NamespacedDependencyIndex
@@ -91,71 +91,75 @@ function zbInit
 			$dependencyNamespaceResolver
 		);
 
-		$dependencyLoader=new \ZedBoot\DI\SimpleDependencyLoader($dependencyIndex);
+		$dependencyLoader = new \ZedBoot\DI\SimpleDependencyLoader($dependencyIndex);
 		
 		//Make sure shared parameters are available as soon as possible
 		//They are likely to be used by the url router
-		$configLoaderParameters=$dependencyLoader->getDependency($bootConfigKey.':sharedParameters','array');
+		$configLoaderParameters = $dependencyLoader->getDependency($bootConfigKey.':sharedParameters','array');
 		$configLoader->setConfigParameters($configLoaderParameters);
 
-		$classRegistry=$dependencyLoader->getDependency($bootConfigKey.':classRegistry','array');
-		$i=0;
-		foreach($classRegistry as $k=>$item)
+		$classRegistry = $dependencyLoader->getDependency($bootConfigKey.':classRegistry','array');
+		$i = 0;
+		foreach($classRegistry as $k => $item)
 		{
 			$i++;
 			if(!is_array($item)) throw new Err('Invalid parameter: '.$bootConfigKey.':classRegistry['.$k.'], all entries are expected to be arrays.');
-			if(!array_key_exists('path',$item)) throw new Err($bootConfigKey.':classRegistry['.$k.'] missing path.');
-			if(!array_key_exists('namespace',$item)) throw new Err($bootConfigKey.':classRegistry['.$k.'] missing namespace.');
+			if(!array_key_exists('path', $item)) throw new Err($bootConfigKey.':classRegistry['.$k.'] missing path.');
+			if(!array_key_exists('namespace', $item)) throw new Err($bootConfigKey.':classRegistry['.$k.'] missing namespace.');
 			$loader->register(
 				$item['namespace'],
 				$item['path'],
-				array_key_exists('suffix',$item)?$item['suffix']:'.class.php',
-				array_key_exists('prefix',$item)?$item['prefix']:'');
+				array_key_exists('suffix',$item) ? $item['suffix'] : '.class.php',
+				array_key_exists('prefix',$item) ? $item['prefix'] : '');
 		}
 		
 		//Get url router
-		$router=$dependencyLoader->getDependency($bootConfigKey.':urlRouter','\\ZedBoot\\Bootstrap\\URLRouterInterface');
+		$router = $dependencyLoader->getDependency($bootConfigKey.':urlRouter','\\ZedBoot\\Bootstrap\\URLRouterInterface');
 		//Resolve the route
-		$url=explode('?',$_SERVER['REQUEST_URI'],2);
+		$url = explode('?', $_SERVER['REQUEST_URI'], 2);
 		$router->parseURL($url[0]);
 
 		//Load route data
-		$routeData=$router->getRouteData();
-		$baseURL=$router->getBaseURL();
-		if(!array_key_exists('response',$routeData)) throw new Err('response dependency not specified for route '.$baseURL);
+		$routeData = $router->getRouteData();
+		$baseURL = $router->getBaseURL();
+		if(!array_key_exists('response', $routeData)) throw new Err('response dependency not specified for route '.$baseURL);
 
 		$dependencyIndex->addParameters([
-			$bootConfigKey.':routeData'=>$routeData,
-			$bootConfigKey.':baseURL'=>$baseURL,
-			$bootConfigKey.':urlParts'=>$router->getURLParts(),
-			$bootConfigKey.':urlParameters'=>$router->getURLParameters(),
+			$bootConfigKey.':routeData' => $routeData,
+			$bootConfigKey.':baseURL' => $baseURL,
+			$bootConfigKey.':urlParts' => $router->getURLParts(),
+			$bootConfigKey.':urlParameters' => $router->getURLParameters(),
 		]);
 
+		//
+		$responseEventTrigger = $dependencyLoader->getDependency($bootConfigKey.':responseEventTrigger', '\\ZedBoot\\Bootstrap\\ResponseEventTriggerInterface');
 		//Get the request handler
-		$response=$dependencyLoader->getDependency($routeData['response'],'\\ZedBoot\\Bootstrap\\ResponseInterface');
+		$response = $dependencyLoader->getDependency($routeData['response'], '\\ZedBoot\\Bootstrap\\ResponseInterface');
 		
 		//Handle the request
-		ob_start(); $obStarted=true; //$response shouldn't write anything to output - if it does, ignore.
+		ob_start(); $obStarted = true; //$response shouldn't write anything to output - if it does, ignore.
+		$responseEventTrigger->triggerInit();
 		$response->handleRequest();
-		$output=$response->getResponseText();
-		$headers=$response->getHeaders();
+		$responseEventTrigger->triggerFinish();
+		$output = $response->getResponseText();
+		$headers = $response->getHeaders();
 		if(!is_array($headers)) throw new Err('Expected array from '.get_class($response).'::getHeaders(), got '.getType($headers).'.');
 		foreach($headers as $header)
 		{
 			//Bad headers will be handled before any are sent. If any are bad, none will be sent
 			if(!is_array($header)) throw new Err('Invalid header in list returned by '.get_class($response).'::getHeaders(): expected array, got '.getType($header).'.');
-			if(count($header)<1) throw new Err('Invalid header in list returned by '.get_class($response).'::getHeaders(): Each header array must have at least one element.');
+			if(count($header) < 1) throw new Err('Invalid header in list returned by '.get_class($response).'::getHeaders(): Each header array must have at least one element.');
 		}
 		foreach($headers as $header)
 		{
-			$h=array_shift($header);
-			$replace=true;
-			$responseCode=null;
-			if(count($header)>0)$replace=array_shift($header);
-			if(count($header)>0)$responseCode=array_shift($header);
-			if($responseCode===null){ header($h,$replace); } else header($h,$replace,$responseCode);
+			$h = array_shift($header);
+			$replace = true;
+			$responseCode = null;
+			if(count($header) > 0) $replace = array_shift($header);
+			if(count($header) > 0) $responseCode = array_shift($header);
+			if($responseCode === null){ header($h,$replace); } else header($h, $replace, $responseCode);
 		}
-		ob_end_clean(); $obStarted=false;
+		ob_end_clean(); $obStarted = false;
 		echo $output;
 		
 	}
