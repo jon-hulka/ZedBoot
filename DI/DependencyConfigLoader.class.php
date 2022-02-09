@@ -58,6 +58,21 @@ class DependencyConfigLoader
 		array $configParameters = []
 	)
 	{
+		$includeIndex = [];
+		$this->loadConfigRecursive($dependencyIndex, $path, $configParameters, $includeIndex);
+	}
+
+	/**
+	 * Maintains an index of included configuration files to prevent duplicates.
+	 */
+	protected function loadConfigRecursive
+	(
+		\ZedBoot\DI\DependencyIndexInterface $dependencyIndex,
+		string $path,
+		array $configParameters = [],
+		array &$includeIndex
+	)
+	{
 		$parameters = null;
 		$aliases = null;
 		$arrayElements = null;
@@ -81,7 +96,7 @@ class DependencyConfigLoader
 			$sets,
 			array_merge($this->configParameters, $configParameters)
 		);
-		if($parameters!==null)
+		if($parameters !== null)
 		{
 			if(!is_array($parameters)) throw new Err('$parameters is not an array in config file '.$path);
 			$dependencyIndex->addParameters($parameters);
@@ -91,7 +106,7 @@ class DependencyConfigLoader
 			if(!is_array($aliases)) throw new Err('$aliases is not an array in config file '.$path);
 			$this->addAliases($dependencyIndex, $aliases, $path);
 		}
-		if($arrayElements!==null)
+		if($arrayElements !== null)
 		{
 			if(!is_array($arrayElements)) throw new Err('$arrayElements is not an array in config file '.$path);
 			$this->addArrayElements($dependencyIndex, $arrayElements, $path);
@@ -131,7 +146,11 @@ class DependencyConfigLoader
 					}
 					$includePath = '/'.implode('/', $pathParts);
 				}
-				$this->loadConfig($dependencyIndex, $includePath, $configParameters);
+				if(empty($includeIndex[$includePath]))
+				{
+					$includeIndex[$includePath] = true;
+					$this->loadConfigRecursive($dependencyIndex, $includePath, $configParameters, $includeIndex);
+				}
 			}
 		}
 		if($sets!==null)
