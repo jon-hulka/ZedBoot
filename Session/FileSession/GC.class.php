@@ -61,7 +61,7 @@ class GC
 	protected function start()
 	{
 		//In order to safely lock meta datastores and ensure no race conditions with gc, everything synchronizes on this file
-		if(false===($this->lockFP=fopen($this->savePath.'/.lock','c+',0600))) throw new Err('Unable to open/create file '.$this->savePath.'/.lock');
+		if(false===($this->lockFP=fopen($this->savePath.'/.lock','c+'))) throw new Err('Unable to open/create file '.$this->savePath.'/.lock');
 		$this->started=true;
 	}
 	

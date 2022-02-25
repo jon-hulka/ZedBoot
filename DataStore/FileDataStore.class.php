@@ -31,7 +31,7 @@ class FileDataStore implements \ZedBoot\DataStore\DataStoreInterface
 		{
 			$dir=dirname($this->path);
 			if(!is_dir($dir) && !mkdir($dir,0700,true)) throw new Err('Unable to create directory '.$dir.'.');
-			if(false===($fp=fopen($this->path,'c+',0600))) throw new Err('Unable to open/create file '.$this->path.'.');
+			if(false===($fp=fopen($this->path,'c+'))) throw new Err('Unable to open/create file '.$this->path.'.');
 			if(!flock($fp,LOCK_EX)) throw new Err('Lock failed: '.$this->path);
 			$this->filePointer=$fp;
 		}
