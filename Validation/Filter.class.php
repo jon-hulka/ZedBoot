@@ -31,7 +31,7 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 	/**
 	 * flags can be specified in a filter definition array, or in its 'options' array, if it is in both, the outer version will override the 'options' version
 	 * @param array $definitions as passed to filter_var_array with additional elements as described above
-	 * @param array $customHandlers [<filter name>=><\ZedBoot\Validation\FilterHandlerInterface instance>,...]
+	 * @param array $customHandlers [(filter name) => (\ZedBoot\Validation\FilterHandlerInterface instance), ...]
 	 */
 	public function __construct(
 		array $definitions,
@@ -126,46 +126,85 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 		$vs = [];
 		//Only apply filters to parameters that are present
 		$toApply = [];
-		if($ok) foreach($this->definitions as $k => $def)
+		foreach($this->definitions as $k => $def)
 		{
+			$itemOk = true;
 			if(array_key_exists($k, $parameters))
 			{
-				$parameters[$k] = strval($parameters[$k]);
-				if($def['trim_whitespace']) $parameters[$k] = trim($parameters[$k]);
-				if(strlen($parameters[$k]) === 0 && !empty($def['discard_empty'])) unset($parameters[$k]);
+				if(is_scalar($parameters[$k]))
+				{
+					$parameters[$k] = strval($parameters[$k]);
+					if($def['trim_whitespace']) $parameters[$k] = trim($parameters[$k]);
+					if(strlen($parameters[$k]) === 0 && !empty($def['discard_empty'])) unset($parameters[$k]);
+				}
+				else
+				{
+					$itemOk = false;
+					$messages[$k] = 'Invalid ' . $k . ': expected scalar data.';
+				}
+				if($itemOk && array_key_exists($k, $parameters))
+				{
+					$toApply[$k] = $def;
+				}
 			}
-			if(array_key_exists($k, $parameters))
+			if($def['required'] && !array_key_exists($k, $parameters))
 			{
-				$toApply[$k] = $def;
-			}
-			else if($def['required'])
-			{
-				$ok = false;
+				$itemOk = false;
 				$messages[$k] = $def['name'].' is required.';
 			}
+			$ok = $ok && $itemOk;
 		}
-
 		foreach($toApply as $k => $def)
 		{
 			$msg = null;
 			$in = $parameters[$k];
 			$out = null;
+			$nullOnFail = false;
 			if(strlen($in) > 0 || !$def['empty_as_null'])
 			{
 				if(array_key_exists('filter',$def))
 				{
 					//Options and flags must be nested in the $options parameter
 					$options = ['options' => $def['options']];
-					if($def['flags'] !== null) $options['flags'] = $def['flags'];
+					//If flags are at the outer level, use those
+					$flags = $def['flags'];
+					if($flags === null && array_key_exists('flags', $options))
+					{
+						//If no flags at the outer level, use flags at inner level
+						$flags = $options['flags'];
+					}
+					if($def['filter'] === \FILTER_VALIDATE_BOOLEAN)
+					{
+						if($flags === null) $flags = 0;
+						$flags |= \FILTER_NULL_ON_FAILURE;
+					}
+					if($flags !== null)
+					{
+						if($flags & \FILTER_NULL_ON_FAILURE) $nullOnFail = true;
+						$options['flags'] = $flags;
+					}
 					$out = filter_var($in, $def['filter'], $options);
 				}
 				else
 				{
 					//This one has a custom handler
-					$out = $def['filter_handler']->applyFilter($in, $def['name'], $def['options'], $def['flags']);
-					if(!$out) $msg = $def['filter_handler']->getMessage();
+					['status' => $status, 'value' => $out, 'message' => $msg] =
+						$def['filter_handler']->applyFilter($in, $def['name'], $def['options'], $def['flags'])
+						+ ['status' => 'unknown', 'value' => false, 'message' => $def['help']];
+					switch($status)
+					{
+						case 'success':
+							break;
+						case 'error':
+							$ok = false;
+							break;
+						default:
+							$ok = false;
+							$msg = 'System error: unknown status from ' . get_class($def['filter_handler']) . '.';
+							break;
+					}
 				}
-				if($out === false)
+				if(($nullOnFail && $out === null) || (!$nullOnFail && $out === false))
 				{
 					$ok = false;
 					$messages[$k] = $msg === null ? $def['help'] : $msg;

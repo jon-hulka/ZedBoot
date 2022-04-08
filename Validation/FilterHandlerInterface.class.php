@@ -10,9 +10,19 @@
 namespace ZedBoot\Validation;
 interface FilterHandlerInterface
 {
-	public function applyFilter(string $value, string $name, array $options, ?array $flags = null);
 	/**
-	 * If applyFilter() returns a negative value, provides an optional custom error message.
+	 * @return                           <br>
+	 * [                                 <br>&emsp;
+	 *   'status' => 'error',            <br>&emsp;
+	 *   //Optional - if empty, the default message will be used.<br>&emsp;
+	 *   'message' => (string)           <br>
+	 * ]                                 <br>
+	 * OR                                <br>
+	 * [                                 <br>&emsp;
+	 *   'status' => 'success',          <br>&emsp;
+	 *   'value' => (filter result)      <br>
+	 * ]
+	 * 
 	 */
-	public function getMessage() : ?string;
+	public function applyFilter(string $value, string $name, array $options, ?array $flags = null) : array;
 }
