@@ -16,7 +16,7 @@ class DateFilterHandler implements \ZedBoot\Validation\FilterHandlerInterface
 	 *   max_range
 	 *   format - any string accepted by DateTime->format() - default 'Y-m-d'
 	 */
-	public function applyFilter(string $value, string $name, array $options, array $flags=null) : array
+	public function applyFilter($value, string $name, array $options, array $flags=null) : array
 	{
 		$result = ['status' => 'error', 'message' => 'System error: unexpected failure in ' . get_class($this) . '.'];
 		$ok = true;

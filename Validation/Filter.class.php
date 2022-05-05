@@ -128,31 +128,18 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 		$toApply = [];
 		foreach($this->definitions as $k => $def)
 		{
-			$itemOk = true;
-			if(array_key_exists($k, $parameters))
+			if(!array_key_exists($k, $parameters))
 			{
-				if(is_scalar($parameters[$k]))
+				if($def['required'])
 				{
-					$parameters[$k] = strval($parameters[$k]);
-					if($def['trim_whitespace']) $parameters[$k] = trim($parameters[$k]);
-					if(strlen($parameters[$k]) === 0 && !empty($def['discard_empty'])) unset($parameters[$k]);
-				}
-				else
-				{
-					$itemOk = false;
-					$messages[$k] = 'Invalid ' . $k . ': expected scalar data.';
-				}
-				if($itemOk && array_key_exists($k, $parameters))
-				{
-					$toApply[$k] = $def;
+					$ok = false;
+					$messages[$k] = $def['name'] . ' is required.';
 				}
 			}
-			if($def['required'] && !array_key_exists($k, $parameters))
+			else
 			{
-				$itemOk = false;
-				$messages[$k] = $def['name'].' is required.';
+				$toApply[$k] = $def;
 			}
-			$ok = $ok && $itemOk;
 		}
 		foreach($toApply as $k => $def)
 		{

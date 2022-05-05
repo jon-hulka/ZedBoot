@@ -24,5 +24,5 @@ interface FilterHandlerInterface
 	 * ]
 	 * 
 	 */
-	public function applyFilter(string $value, string $name, array $options, ?array $flags = null) : array;
+	public function applyFilter($value, string $name, array $options, ?array $flags = null) : array;
 }
