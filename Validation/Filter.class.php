@@ -128,6 +128,11 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 		$toApply = [];
 		foreach($this->definitions as $k => $def)
 		{
+			if(is_scalar($parameters[$k]))
+			{
+				if($def['trim_whitespace']) $parameters[$k] = trim($parameters[$k]);
+				if(strlen($parameters[$k]) === 0 && !empty($def['discard_empty'])) unset($parameters[$k]);
+			}
 			if(!array_key_exists($k, $parameters))
 			{
 				if($def['required'])
@@ -143,34 +148,43 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 		}
 		foreach($toApply as $k => $def)
 		{
+			$itemOK = true;
 			$msg = null;
 			$in = $parameters[$k];
 			$out = null;
 			$nullOnFail = false;
-			if(strlen($in) > 0 || !$def['empty_as_null'])
+			if(!is_scalar($in) || strlen($in) > 0 || !$def['empty_as_null'])
 			{
-				if(array_key_exists('filter',$def))
+				if(array_key_exists('filter', $def))
 				{
-					//Options and flags must be nested in the $options parameter
-					$options = ['options' => $def['options']];
-					//If flags are at the outer level, use those
-					$flags = $def['flags'];
-					if($flags === null && array_key_exists('flags', $options))
+					if(is_scalar($in))
 					{
-						//If no flags at the outer level, use flags at inner level
-						$flags = $options['flags'];
+						//Options and flags must be nested in the $options parameter
+						$options = ['options' => $def['options']];
+						//If flags are at the outer level, use those
+						$flags = $def['flags'];
+						if($flags === null && array_key_exists('flags', $options))
+						{
+							//If no flags at the outer level, use flags at inner level
+							$flags = $options['flags'];
+						}
+						if($def['filter'] === \FILTER_VALIDATE_BOOLEAN)
+						{
+							if($flags === null) $flags = 0;
+							$flags |= \FILTER_NULL_ON_FAILURE;
+						}
+						if($flags !== null)
+						{
+							if($flags & \FILTER_NULL_ON_FAILURE) $nullOnFail = true;
+							$options['flags'] = $flags;
+						}
+						$out = filter_var($in, $def['filter'], $options);
 					}
-					if($def['filter'] === \FILTER_VALIDATE_BOOLEAN)
+					else
 					{
-						if($flags === null) $flags = 0;
-						$flags |= \FILTER_NULL_ON_FAILURE;
+						$ok = false;
+						$messages[$k] = 'Invalid ' . $k . ': expected scalar data.';
 					}
-					if($flags !== null)
-					{
-						if($flags & \FILTER_NULL_ON_FAILURE) $nullOnFail = true;
-						$options['flags'] = $flags;
-					}
-					$out = filter_var($in, $def['filter'], $options);
 				}
 				else
 				{
