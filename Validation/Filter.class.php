@@ -128,7 +128,7 @@ class Filter implements \ZedBoot\Validation\FilterInterface
 		$toApply = [];
 		foreach($this->definitions as $k => $def)
 		{
-			if(is_scalar($parameters[$k]))
+			if(is_scalar($parameters[$k] ?? null))
 			{
 				if($def['trim_whitespace']) $parameters[$k] = trim($parameters[$k]);
 				if(strlen($parameters[$k]) === 0 && !empty($def['discard_empty'])) unset($parameters[$k]);
