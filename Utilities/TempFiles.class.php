@@ -28,7 +28,7 @@ class TempFiles implements \ZedBoot\Utilities\TempFilesInterface
 		$this->expiry = $expiry;
 	}
 
-	public function create(?string $data) : array
+	public function create(?string $data = null) : array
 	{
 		$ok = true;
 		$result = ['status' => 'error', 'message' => 'Unknown error in ' . get_class($this) . '::' . __FUNCTION__ . '.'];

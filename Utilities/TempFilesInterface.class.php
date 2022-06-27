@@ -21,7 +21,7 @@ interface TempFilesInterface
 	 *     'message' => (string) <br>&emsp;
 	 *   ]
 	 */
-	public function create(?string $data) : array;
+	public function create(?string $data = null) : array;
 
 	/**
 	 * @return array             <br>&emsp;
