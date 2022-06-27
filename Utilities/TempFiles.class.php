@@ -104,7 +104,7 @@ class TempFiles implements \ZedBoot\Utilities\TempFilesInterface
 		$result = ['status' => 'error', 'message' => 'Unknown error in ' . get_class($this) . '::' . __FUNCTION__ . '.'];
 		$this->lock(\LOCK_EX);
 		$this->gc();
-		if($ok && dirnam($path) !== $this->tempPath) throw new exception('Attempt to delete file not in temp directory.');
+		if($ok && dirname($path) !== $this->tempPath) throw new exception('Attempt to delete file not in temp directory.');
 		if($ok && file_exists($path) && !unlink($path))
 		{
 			$ok = false;
